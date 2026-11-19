@@ -30,7 +30,7 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-session-jdbc")
 	implementation("org.flywaydb:flyway-database-postgresql")
 	implementation("org.bouncycastle:bcprov-jdk18on:1.87")
-	implementation("com.twelvemonkeys.imageio:imageio-webp:3.12.0")
+	implementation("com.twelvemonkeys.imageio:imageio-webp:3.15.3")
 	implementation("org.springframework.modulith:spring-modulith-observability-api")
 	implementation("org.springframework.modulith:spring-modulith-starter-core")
 	implementation("org.springframework.modulith:spring-modulith-starter-jpa")
@@ -50,8 +50,8 @@ dependencies {
 	testImplementation("org.springframework.modulith:spring-modulith-starter-test")
 	testImplementation("org.testcontainers:testcontainers-junit-jupiter")
 	testImplementation("org.testcontainers:testcontainers-postgresql")
-	testImplementation("net.jqwik:jqwik:1.9.2")
-	testImplementation("com.tngtech.archunit:archunit-junit5:1.4.0")
+	testImplementation("net.jqwik:jqwik:1.10.2")
+	testImplementation("com.tngtech.archunit:archunit-junit5:1.5.1")
 	testRuntimeOnly("com.h2database:h2")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
@@ -112,7 +112,7 @@ tasks.check {
 val pitest: Configuration by configurations.creating
 
 dependencies {
-	pitest("org.pitest:pitest-command-line:1.20.2")
+	pitest("org.pitest:pitest-command-line:1.30.2")
 	pitest("org.pitest:pitest-junit5-plugin:1.2.3")
 }
 
