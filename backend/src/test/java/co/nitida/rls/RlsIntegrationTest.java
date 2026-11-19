@@ -39,7 +39,11 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @Testcontainers(disabledWithoutDocker = true)
 class RlsIntegrationTest extends OrderFlowTest {
     @Container
-    static final PostgreSQLContainer PG = new PostgreSQLContainer("postgres:17-alpine").withInitScript("rls/init-roles.sql");
+    static final PostgreSQLContainer PG = new PostgreSQLContainer("postgres:17-alpine");
+
+    static {
+        PG.withInitScript("rls/init-roles.sql");
+    }
 
     private static final String APP_USER = "nitida_app";
     private static final String APP_PASSWORD = "app-test-password";
@@ -232,7 +236,6 @@ class RlsIntegrationTest extends OrderFlowTest {
     void twoWorkshopsRacingForTheSameSerialLeaveExactlyOneWinner() throws Exception {
         var shops = List.of(newShop(), newShop());
         String serial = "RACE-" + UUID.randomUUID().toString().substring(0, 10).toUpperCase();
-        var targets = new ArrayList<Runnable>();
         var accepted = java.util.Collections.synchronizedList(new ArrayList<Boolean>());
         var start = new CountDownLatch(1);
         var pool = Executors.newFixedThreadPool(2);
