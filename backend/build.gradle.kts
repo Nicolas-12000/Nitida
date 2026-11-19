@@ -96,7 +96,12 @@ tasks.jacocoTestCoverageVerification {
 			limit {
 				counter = "LINE"
 				value = "COVEREDRATIO"
-				minimum = "0.70".toBigDecimal()
+				minimum = "0.90".toBigDecimal()
+			}
+			limit {
+				counter = "BRANCH"
+				value = "COVEREDRATIO"
+				minimum = "0.75".toBigDecimal()
 			}
 		}
 	}
@@ -134,7 +139,7 @@ tasks.register<JavaExec>("pitest") {
 			"--excludedTestClasses", "*IntegrationTest,*ApplicationTests,co.nitida.security.*,co.nitida.ApiContractTest,co.nitida.ArchitectureTest",
 			"--sourceDirs", "src/main/java",
 			"--classPath", sourceSets.test.get().runtimeClasspath.files.joinToString(",") { it.absolutePath },
-			"--mutationThreshold", "70",
+			"--mutationThreshold", "85",
 			"--outputFormats", "HTML,XML",
 			"--timestampedReports=false",
 			"--threads", "2",

@@ -43,6 +43,10 @@ public class RegisterSerialUseCase {
         var part = order.findPart(c.partId());
         var outcome = catalog.registerSerial(c.ctx().workshopId(), order.getMotorcycleId(), order.getId(), c.serial(), c.reactivationReason());
         if (outcome instanceof SerialRegistration.Accepted accepted) {
+            // A correction replaces the serial: the mistyped one must stop blocking that serial everywhere.
+            if (part.getSerialId() != null && !part.getSerialId().equals(accepted.serialId())) {
+                catalog.releaseSerial(part.getSerialId(), order.getId());
+            }
             part.attachSerial(accepted.serialId(), normalize(c.serial()));
             order.markChanged(clock.instant());
             return new Result(true, part.getEvidenceLevel().name(), null);

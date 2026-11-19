@@ -56,7 +56,7 @@ Entregable: **`docs/api.md`** (T4), escrito a mano. Por cada endpoint de la spec
 | 5 | `cashdesk`, seriales globales | **Hecha** (T2): cuadre, alertas F1–F6, listeners y scheduler |
 | 6 | Portal del propietario | **Hecha en el back** (T3): reclamar, traspasar, historial y links del propietario. E2E Playwright = frontend |
 
-Calidad al último commit: 371 pruebas en verde, `Modulith verify`, ArchUnit (arquitectura + seguridad) y matriz de acceso en verde; PIT con umbral 70 %.
+Calidad al último commit: 395 pruebas en verde; cobertura JaCoCo 96,5 % de líneas y 82 % de ramas (el build exige 90 % y 75 %); mutación PIT 91 % (el build exige 85 %); `Modulith verify`, ArchUnit (arquitectura + seguridad) y matriz de acceso en verde.
 
 ## Checklist del MVP contra la spec
 
@@ -79,7 +79,7 @@ Marcado = hecho y con prueba. Orden sugerido para la entrega: RLS → contrato �
 - [x] `docs/api.md` escrito a mano + `ApiContractTest` (falla si una ruta falta o sobra)
 - [x] Catálogo de `code` de Problem Details para el frontend
 - [ ] Paginación por cursor en listados (hoy: últimos 200 alertas/órdenes, 20 clientes)
-- [ ] (Opcional) OpenAPI/Swagger generado: ver decisión 9
+- [x] OpenAPI/Swagger solo en `dev` (trabajo aparte; ver decisión 9)
 
 ### Autenticación y sesión (§10)
 - [x] Argon2id, sesión JDBC 8 h, CSRF por cookie + encabezado, rotación de sesión, bloqueo progresivo, logout
@@ -87,22 +87,24 @@ Marcado = hecho y con prueba. Orden sugerido para la entrega: RLS → contrato �
 - [ ] TOTP obligatorio para admin / opcional para dueño, o ADR de aplazamiento
 - [ ] Envío de correo de invitaciones por Mailpit (hoy el token vuelve una vez al dueño: decisión 8)
 - [ ] Recuperación de contraseña (citada en §10, sin UC en §6)
-- [ ] Límite por IP detrás de proxy (`X-Forwarded-For` de confianza); hoy usa `remoteAddr`
+- [x] Límite por IP detrás de proxy: `server.forward-headers-strategy=native` (solo proxies internos); `ForwardedHeadersTest`
+- [ ] Límite al registro de usuarios (cada registro calcula un Argon2id: es la forma más barata de saturar la CPU)
 
 ### Seguridad y arquitectura (§13)
 - [x] ArchUnit de capas + reglas de seguridad (sin `System.out`, solo `SecureRandom`, handlers sin acceso directo a BD, sin SQL nativo armado a mano, listeners en `application`, eventos `record`), cada regla con violación a propósito que demuestra que muerde
 - [x] Matriz rol × endpoint de §3.1 (`AccessMatrixTest`, 61 casos)
 - [x] Pruebas OWASP en ejecución (`OwaspSecurityTest`): encabezados, Actuator cerrado, cookie, Argon2id y tokens en hash, inyección, historial solo-agregar, logs sin PII, errores genéricos
-- [ ] `docs/owasp-top10.md`: categoría → control → prueba → archivo
-- [ ] `docs/amenazas.md` (STRIDE §13.1)
+- [x] `docs/owasp-top10.md`: categoría → control → prueba → archivo
+- [x] `docs/amenazas.md` (STRIDE §13.1)
+- [x] Bugs de concurrencia y robustez encontrados con pruebas: pagos simultáneos que superaban el total (`PaymentRaceIntegrationTest`), eventos fallidos que nadie reintentaba (`EventResubmission`), claves del limitador que nunca se liberaban, serial corregido que seguía bloqueando al verdadero
 
 ### Pruebas y calidad (§15)
 - [x] P1–P8, P11, P12; D3, D4, D5; límites de §15.3; concurrencia de entregas y seriales
-- [ ] P9 como `@Property` jqwik (hoy: caminata aleatoria con semilla en integración)
-- [ ] P10 como `@Property` jqwik (seriales en varias motos)
+- [ ] P9 como `@Property` jqwik (hoy: caminata aleatoria con semilla en integración). Cuesta porque la suma vive en una consulta SQL, no en una función pura
+- [ ] P10 como `@Property` jqwik (seriales en varias motos); mismo motivo
 - [ ] D1 verificador independiente en Python; D2 Ed25519 JDK vs BouncyCastle
-- [ ] PIT ≥ 75 % global y ≥ 85 % en `history`, alcance con `orders`, `cashdesk` y `shared`
-- [ ] JaCoCo ≥ 85 % (hoy la regla del build exige 70 %)
+- [x] PIT 91 % global (umbral del build 85 %), `history.domain` ≥ 85 %, alcance `shared` + todos los `*.domain` (incluye `orders` y `cashdesk`)
+- [x] JaCoCo 96,5 % de líneas y 82 % de ramas (umbrales del build 90 % y 75 %)
 
 ### CI/CD (§14)
 - [x] `gradle-wrapper.jar` versionado (Actions fallaba con `Unable to access jarfile`)
@@ -111,10 +113,13 @@ Marcado = hecho y con prueba. Orden sugerido para la entrega: RLS → contrato �
 - [x] Check único `CI passed` para exigir en la protección de rama
 - [ ] Configurar `SONAR_TOKEN` (secret) y `SONAR_HOST_URL` (variable) en GitHub, y captura del Quality Gate en verde
 - [ ] Pasar `actionlint` (no se pudo correr local: sin Docker en WSL)
+- [x] CI sin duplicados: un solo SAST (CodeQL), sin `dependency-review` (Trivy + verificación de Gradle lo cubren), SBOM solo de la imagen y solo en `main`, Trivy sin el escáner de secretos (gitleaks ya lo hace), caché de capas de Docker con la capa de dependencias separada, caché de pnpm, clon superficial cuando no corre Sonar, Dependabot agrupado
+- [x] Los hallazgos de Trivy sobre la imagen salen como una anotación cada uno (legibles en la interfaz y por API)
+- [ ] Los PR de Dependabot de Gradle fallan porque `verification-metadata.xml` no se actualiza solo: hay que correr `./gradlew --write-verification-metadata sha256 help` en la rama
 
 ### Documentación y datos (§16)
-- [ ] `README.md` del backend: arranque, variables, cómo correr Sonar y PIT, firma = integridad, no no-repudio
-- [ ] `docs/decisiones/` con los ADRs de la lista de abajo
+- [x] `README.md` (raíz): arranque, variables, cómo correr Sonar y PIT, firma = integridad, no no-repudio
+- [x] `docs/decisiones/`: 13 ADRs
 - [ ] Semilla del perfil `dev`: 2 talleres (uno verificado), 1 admin, 5 motos con historial
 
 ### Fuera del MVP (correcto que no estén)
@@ -223,5 +228,5 @@ En CI: ZAP baseline contra `docker compose`, sin alertas altas.
 6. Los índices únicos parciales de seriales y de propietario activo se emulan con una columna anulable + `UNIQUE` (portable entre H2 y Postgres).
 7. Límite de intentos en memoria propio (`RateLimiter`) en lugar de Bucket4j; SBOM con Trivy en lugar del plugin CycloneDX.
 8. Las invitaciones le devuelven el token al dueño una sola vez (por ahora sin correo ni Mailpit).
-9. Contrato HTTP en `docs/api.md` escrito a mano, validado por `ApiContractTest`, en lugar de OpenAPI/Swagger: springdoc solo documenta `RouterFunction` si se anota cada ruta con `@RouterOperation` (y expone `/swagger-ui` y `/v3/api-docs`, que hoy están cerrados a propósito). Si el frontend lo pide, se agrega solo en el perfil `dev`.
+9. Contrato HTTP en `docs/api.md` (prosa, comprobada por `ApiContractTest`); OpenAPI y Swagger UI solo con el perfil `dev`, cerrados en producción y en las pruebas.
 10. `OWNERSHIP_TRANSFER` lo firma una identidad de plataforma (`WorkshopsApi.PLATFORM_ID`, migración `V13`, llave creada al arrancar), porque ningún taller hizo el traspaso.
