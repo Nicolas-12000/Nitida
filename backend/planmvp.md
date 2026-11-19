@@ -66,7 +66,7 @@ Marcado = hecho y con prueba. Orden sugerido para la entrega: RLS → contrato �
 - [x] UC-01…24: orquestadores y rutas de taller, recepción, OT, historial, caja F1–F6, catálogo y seriales, portal del propietario
 - [x] Reglas núcleo: estados de OT, pagos y anulación, entrega con código de reclamación, cadena JCS/Ed25519, enmiendas, odómetro, links, cuadre por día de Bogotá, alertas, seriales globales, evidencia, taller suspendido o pendiente dentro del contenido firmado
 - [x] RN-82 traspaso firmado por la identidad de plataforma (sin nombres); el dueño anterior no ve entradas posteriores
-- [ ] RN-14 cambio de placa por API (hoy solo `Motorcycle.changePlate()` + `plate_history` en dominio)
+- [x] RN-14 cambio de placa por API: `PATCH /motorcycles/{id}/plate` (la moto conserva su id; la placa anterior queda en el historial de placas)
 - [ ] RN-22 diagnóstico libre puede llevar PII escrita por el mecánico: documentar y pedir aviso en la UI
 
 ### Aislamiento entre talleres (§8.2) — el hueco más grande
@@ -78,7 +78,7 @@ Marcado = hecho y con prueba. Orden sugerido para la entrega: RLS → contrato �
 ### Contrato HTTP (§9)
 - [x] `docs/api.md` escrito a mano + `ApiContractTest` (falla si una ruta falta o sobra)
 - [x] Catálogo de `code` de Problem Details para el frontend
-- [ ] Paginación por cursor en listados (hoy: últimos 200 alertas/órdenes, 20 clientes)
+- [x] Paginación por cursor en `GET /orders` y `GET /cashdesk/alerts` (`?limit=&cursor=`, cursor en `X-Next-Cursor`, el arreglo no cambia). Quedan sin cursor, a propósito: recepciones abiertas, clientes (máx. 20) y «mis motos»
 - [x] OpenAPI/Swagger solo en `dev` (trabajo aparte; ver decisión 9)
 
 ### Autenticación y sesión (§10)
@@ -88,7 +88,7 @@ Marcado = hecho y con prueba. Orden sugerido para la entrega: RLS → contrato �
 - [ ] Envío de correo de invitaciones por Mailpit (hoy el token vuelve una vez al dueño: decisión 8)
 - [ ] Recuperación de contraseña (citada en §10, sin UC en §6)
 - [x] Límite por IP detrás de proxy: `server.forward-headers-strategy=native` (solo proxies internos); `ForwardedHeadersTest`
-- [ ] Límite al registro de usuarios (cada registro calcula un Argon2id: es la forma más barata de saturar la CPU)
+- [x] Límite al registro de usuarios por IP (`nitida.register.ip-limit`, 10 por hora): cada registro calcula un Argon2id
 
 ### Seguridad y arquitectura (§13)
 - [x] ArchUnit de capas + reglas de seguridad (sin `System.out`, solo `SecureRandom`, handlers sin acceso directo a BD, sin SQL nativo armado a mano, listeners en `application`, eventos `record`), cada regla con violación a propósito que demuestra que muerde
