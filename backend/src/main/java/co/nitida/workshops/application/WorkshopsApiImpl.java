@@ -50,6 +50,12 @@ class WorkshopsApiImpl implements WorkshopsApi {
 
     @Override
     @Transactional(readOnly = true)
+    public java.util.Map<UUID, WorkshopInfo> findAll(java.util.Collection<UUID> ids) {
+        return workshops.findByIdIn(ids).stream().collect(java.util.stream.Collectors.toMap(Workshop::getId, WorkshopsApiImpl::info));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public SignedHash sign(UUID workshopId, byte[] data) {
         SigningKey key = keys.findFirstByWorkshopIdAndRetiredAtIsNullOrderByCreatedAtDesc(workshopId)
                 .orElseThrow(() -> new IllegalStateException("workshop has no active signing key"));

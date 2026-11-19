@@ -23,6 +23,9 @@ public interface WorkshopsApi {
 
     List<WorkshopInfo> all();
 
+    /** Batch lookup by ids (no N+1 on list screens and public pages). */
+    java.util.Map<UUID, WorkshopInfo> findAll(java.util.Collection<UUID> ids);
+
     /** Signs with the workshop's current Ed25519 key. Throws if it cannot (fail closed). */
     SignedHash sign(UUID workshopId, byte[] data);
 

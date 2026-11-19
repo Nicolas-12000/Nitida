@@ -11,6 +11,8 @@ public interface IntakeRepository extends JpaRepository<Intake, UUID> {
 
     List<Intake> findByWorkshopIdAndStatusOrderByCreatedAtAsc(UUID workshopId, IntakeStatus status);
 
+    boolean existsByWorkshopIdAndMotorcycleId(UUID workshopId, UUID motorcycleId);
+
     boolean existsByWorkshopIdAndMotorcycleIdAndStatus(UUID workshopId, UUID motorcycleId, IntakeStatus status);
 
     List<Intake> findByStatusAndCreatedAtBefore(IntakeStatus status, Instant cutoff);

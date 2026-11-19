@@ -14,6 +14,9 @@ public interface IntakeApi {
 
     List<IntakeInfo> open(UUID workshopId);
 
+    /** True if the workshop ever received this motorcycle (it has "attended" it). */
+    boolean hasReceived(UUID workshopId, UUID motorcycleId);
+
     /** Open intakes of every workshop created before the cut-off (leak alert F1). */
     List<IntakeInfo> openCreatedBefore(Instant cutoff);
 

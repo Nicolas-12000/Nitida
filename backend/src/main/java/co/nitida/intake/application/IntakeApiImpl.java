@@ -35,6 +35,12 @@ class IntakeApiImpl implements IntakeApi {
 
     @Override
     @Transactional(readOnly = true)
+    public boolean hasReceived(UUID workshopId, UUID motorcycleId) {
+        return intakes.existsByWorkshopIdAndMotorcycleId(workshopId, motorcycleId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<IntakeInfo> openCreatedBefore(Instant cutoff) {
         return intakes.findByStatusAndCreatedAtBefore(IntakeStatus.OPEN, cutoff).stream().map(IntakeApiImpl::info).toList();
     }
