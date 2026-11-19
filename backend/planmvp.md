@@ -56,7 +56,7 @@ Entregable: **`docs/api.md`** (T4), escrito a mano. Por cada endpoint de la spec
 | 5 | `cashdesk`, seriales globales | **Hecha** (T2): cuadre, alertas F1–F6, listeners y scheduler |
 | 6 | Portal del propietario | **Hecha en el back** (T3): reclamar, traspasar, historial y links del propietario. E2E Playwright = frontend |
 
-Calidad al último commit: 450 pruebas en verde; cobertura JaCoCo 96,5 % de líneas y 82 % de ramas (el build exige 90 % y 75 %); mutación PIT 91 % (el build exige 85 %); `Modulith verify`, ArchUnit (arquitectura + seguridad) y matriz de acceso en verde.
+Calidad al último commit: 481 pruebas en verde; cobertura JaCoCo 96,5 % de líneas y 82 % de ramas (el build exige 90 % y 75 %); mutación PIT 91 % (el build exige 85 %); `Modulith verify`, ArchUnit (arquitectura + seguridad) y matriz de acceso en verde.
 
 ## Checklist del MVP contra la spec
 
