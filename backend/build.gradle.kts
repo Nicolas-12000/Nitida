@@ -34,6 +34,7 @@ dependencies {
 	implementation("org.springframework.modulith:spring-modulith-observability-api")
 	implementation("org.springframework.modulith:spring-modulith-starter-core")
 	implementation("org.springframework.modulith:spring-modulith-starter-jpa")
+	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.2.0")
 	developmentOnly("org.springframework.boot:spring-boot-docker-compose")
 	runtimeOnly("org.postgresql:postgresql")
 	runtimeOnly("org.springframework.modulith:spring-modulith-actuator")
@@ -64,6 +65,13 @@ dependencyManagement {
 
 tasks.bootJar {
 	archiveFileName = "app.jar" // stable name for the Dockerfile
+}
+
+// The contract lives in docs/openapi.yaml. The jar only copies it so Swagger UI can load /openapi.yaml.
+tasks.named<ProcessResources>("processResources") {
+	from(layout.projectDirectory.file("../docs/openapi.yaml")) {
+		into("static")
+	}
 }
 
 tasks.withType<Test> {

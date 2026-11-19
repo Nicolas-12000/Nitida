@@ -1,6 +1,8 @@
 # API HTTP de Nítida — contrato para el frontend
 
-Fuente de verdad: este archivo. `ApiContractTest` falla si una ruta del backend no aparece aquí (o si aquí queda una ruta que ya no existe), así que no se desactualiza en silencio. Las reglas de negocio están en [`../Nitida-especificacion.md`](../Nitida-especificacion.md); el backend es la autoridad y el frontend repite las validaciones solo para dar respuesta inmediata.
+Fuente de verdad en prosa: este archivo. El contrato máquina es **`docs/openapi.yaml`** (OpenAPI 3.0.3); el build lo copia al jar y, solo con el perfil `dev`, Swagger UI lo sirve en `/openapi.yaml`.
+
+`ApiContractTest` y `OpenApiContractTest` fallan si una ruta del backend no está documentada (o sobra). Swagger UI: [`http://localhost:8080/swagger-ui.html`](http://localhost:8080/swagger-ui.html) con `docker compose up` o `SPRING_PROFILES_ACTIVE=dev`. En pruebas, en el DAST del CI y sin ese perfil, esas rutas quedan cerradas. Las reglas de negocio están en [`../Nitida-especificacion.md`](../Nitida-especificacion.md); el backend es la autoridad y el frontend repite las validaciones solo para dar respuesta inmediata.
 
 ## Convenciones
 

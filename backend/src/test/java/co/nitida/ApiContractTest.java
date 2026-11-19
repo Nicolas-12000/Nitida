@@ -32,10 +32,15 @@ class ApiContractTest extends IntegrationTest {
 
     @Autowired List<RouterFunction<ServerResponse>> routers;
 
-    @Test
-    void everyRouteIsDocumentedAndEveryDocumentedRouteExists() throws Exception {
+    static Set<String> servedRoutes(List<RouterFunction<ServerResponse>> routers) {
         var served = new TreeSet<String>();
         for (var router : routers) router.accept(new RouteCollector(served));
+        return served;
+    }
+
+    @Test
+    void everyRouteIsDocumentedAndEveryDocumentedRouteExists() throws Exception {
+        var served = servedRoutes(routers);
 
         var documented = new TreeSet<String>();
         for (String line : Files.readAllLines(Path.of("../docs/api.md"))) {

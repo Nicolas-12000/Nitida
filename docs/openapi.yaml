@@ -1,0 +1,2864 @@
+openapi: 3.0.3
+info:
+  title: Nítida API
+  version: 1.0.0
+  description: |
+    API HTTP del backend de negocio de Nítida (talleres de motos, historial firmado Ed25519, caja y portal del propietario).
+
+    ## Convenciones
+
+    - Base `/api/v1`, JSON UTF-8. El frontend llama al **mismo origen** (Next reescribe `/api/*`). Sin CORS.
+    - **Sesión:** cookie `SESSION` (`HttpOnly`, `SameSite=Lax`, `Secure` salvo HTTP local). Se crea con `POST /auth/login`.
+    - **CSRF:** cookie `XSRF-TOKEN` (legible por JS); en todo `POST`/`PATCH`/`PUT`/`DELETE` enviar `X-XSRF-TOKEN` con el mismo valor.
+    - **Taller activo:** rutas de taller exigen `X-Workshop-Id`. Recurso de otro taller → `404` (no `403`).
+    - **Errores:** RFC 9457 `application/problem+json` con `code` estable en inglés (ver `ProblemDetails`).
+    - **Dinero:** pesos enteros (`long`). **Kilometraje:** 0–999.999.
+    - **Concurrencia:** enviar `version` al editar; choque → `409 VERSION_CONFLICT`.
+
+    Fuente complementaria: `docs/api.md`. Las rutas deben coincidir con `ApiContractTest` y `OpenApiContractTest`.
+  termsOfService: https://github.com/nitida/nitida
+  contact:
+    name: Equipo Nítida
+
+servers:
+  - url: http://localhost:8080
+    description: Desarrollo local (docker compose o `./gradlew bootRun`)
+  - url: /
+    description: Mismo origen detrás del proxy Next.js
+
+tags:
+  - name: auth
+    description: Registro, login, sesión y membresías
+  - name: workshops
+    description: Talleres, invitaciones, administración de plataforma
+  - name: intake
+    description: Recepción de motos
+  - name: customers
+    description: Clientes y datos personales (Ley 1581)
+  - name: motorcycles
+    description: Consulta de motos
+  - name: orders
+    description: Órdenes de trabajo, repuestos, pagos y entrega
+  - name: catalog
+    description: Catálogo de productos y seriales globales
+  - name: files
+    description: Fotos y evidencias
+  - name: history
+    description: Historial firmado, enmiendas, odómetro y links
+  - name: cashdesk
+    description: Cuadre de caja y alertas F1–F6 (solo dueño)
+  - name: owner
+    description: Portal del propietario de la moto
+
+paths:
+
+  /api/v1/auth/register:
+    post:
+      tags: [auth]
+      operationId: register
+      summary: Registrar usuario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      security: []
+      responses:
+        '201':
+          description: Usuario creado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserIdResponse' }
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/auth/login:
+    post:
+      tags: [auth]
+      operationId: login
+      summary: Iniciar sesión
+      description: |
+        Crea la cookie `SESSION` y devuelve el perfil del usuario.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      security: []
+      responses:
+        '200':
+          description: Sesión iniciada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MeResponse' }
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/auth/me:
+    get:
+      tags: [auth]
+      operationId: currentUser
+      summary: Perfil de la sesión actual
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MeResponse' }
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/auth/logout:
+    post:
+      tags: [auth]
+      operationId: logout
+      summary: Cerrar sesión
+      description: |
+        Atendido por Spring Security; invalida la sesión JDBC.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        '204':
+          description: Sesión cerrada
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/workshops:
+    post:
+      tags: [workshops]
+      operationId: createWorkshop
+      summary: Crear taller
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterWorkshopRequest'
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        '201':
+          description: Taller creado; el solicitante queda como dueño
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WorkshopIdResponse' }
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/workshops/mine:
+    get:
+      tags: [workshops]
+      operationId: listMyWorkshops
+      summary: Talleres del usuario
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: OK
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/workshops/{id}:
+    get:
+      tags: [workshops]
+      operationId: getWorkshop
+      summary: Detalle del taller
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '200':
+          description: OK
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/workshops/{id}/settings:
+    patch:
+      tags: [workshops]
+      operationId: updateWorkshopSettings
+      summary: Actualizar ajustes del taller
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkshopSettingsRequest'
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '200':
+          description: Ajustes actualizados
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/workshops/{id}/invitations:
+    post:
+      tags: [workshops]
+      operationId: inviteMember
+      summary: Invitar miembro
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InviteRequest'
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '201':
+          description: Token de invitación (una vez)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InviteResponse' }
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/workshops/{id}/members:
+    get:
+      tags: [workshops]
+      operationId: listMembers
+      summary: Listar miembros
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '200':
+          description: OK
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/workshops/{id}/members/{userId}:
+    delete:
+      tags: [workshops]
+      operationId: removeMember
+      summary: Quitar miembro
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+        - name: userId
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '204':
+          description: Eliminado
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/invitations/{token}/accept:
+    post:
+      tags: [workshops]
+      operationId: acceptInvitation
+      summary: Aceptar invitación
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema: { type: string }
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        '200':
+          description: Membresía creada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  workshopId: { $ref: '#/components/schemas/Uuid' }
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/admin/workshops:
+    get:
+      tags: [workshops]
+      operationId: adminListWorkshops
+      summary: Listar talleres (admin)
+      description: |
+        Requiere rol `PLATFORM_ADMIN`.
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string }
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: OK
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/admin/workshops/{id}/status:
+    post:
+      tags: [workshops]
+      operationId: adminChangeWorkshopStatus
+      summary: Cambiar estado de taller (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminStatusRequest'
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        '200':
+          description: OK
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/public/keys:
+    get:
+      tags: [history]
+      operationId: publicSigningKeys
+      summary: Llaves públicas de firma
+      description: |
+        Formato tipo JWKS para verificación offline.
+      security: []
+      responses:
+        '200':
+          description: OK
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/intakes:
+    post:
+      tags: [intake]
+      operationId: registerIntake
+      summary: Registrar recepción
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IntakeRegisterRequest'
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '201':
+          description: Recepción creada
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/intakes:
+    get:
+      tags: [intake]
+      operationId: listOpenIntakes
+      summary: Recepciones abiertas
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '200':
+          description: OK
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/intakes/{id}/discard:
+    post:
+      tags: [intake]
+      operationId: discardIntake
+      summary: Descartar recepción
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DiscardRequest'
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '204':
+          description: Descartada
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/customers:
+    post:
+      tags: [customers]
+      operationId: createCustomer
+      summary: Crear cliente
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCustomerRequest'
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '201':
+          description: Cliente creado
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/customers:
+    get:
+      tags: [customers]
+      operationId: searchCustomers
+      summary: Buscar clientes
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string, minLength: 2 }
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '200':
+          description: Hasta 20 resultados
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/CustomerResponse' }
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/customers/{id}:
+    patch:
+      tags: [customers]
+      operationId: updateCustomer
+      summary: Actualizar cliente
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCustomerRequest'
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '200':
+          description: OK
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/customers/{id}/erasure:
+    post:
+      tags: [customers]
+      operationId: eraseCustomer
+      summary: Ejercer derecho de supresión
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '204':
+          description: Datos anonimizados
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/motorcycles/lookup:
+    get:
+      tags: [motorcycles]
+      operationId: lookupMotorcycle
+      summary: Buscar moto por placa o VIN
+      parameters:
+        - name: plate
+          in: query
+          schema: { type: string }
+        - name: vin
+          in: query
+          schema: { type: string }
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '200':
+          description: OK
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/orders:
+    post:
+      tags: [orders]
+      operationId: openOrder
+      summary: Abrir orden de trabajo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpenOrderRequest'
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '201':
+          description: Orden creada
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/orders:
+    get:
+      tags: [orders]
+      operationId: listOrders
+      summary: Tablero de órdenes
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string }
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '200':
+          description: OK
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/orders/{id}:
+    get:
+      tags: [orders]
+      operationId: getOrder
+      summary: Detalle de orden
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '200':
+          description: OK
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/orders/{id}:
+    patch:
+      tags: [orders]
+      operationId: editOrder
+      summary: Editar orden
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EditOrderRequest'
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '204':
+          description: Actualizada
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/orders/{id}/transitions:
+    post:
+      tags: [orders]
+      operationId: transitionOrder
+      summary: Cambiar estado
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransitionRequest'
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '200':
+          description: OK
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/orders/{id}/parts:
+    post:
+      tags: [orders]
+      operationId: addPart
+      summary: Agregar repuesto
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PartRequest'
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '201':
+          description: Repuesto agregado
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/orders/{id}/parts/{partId}:
+    delete:
+      tags: [orders]
+      operationId: removePart
+      summary: Quitar repuesto
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+        - name: partId
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '204':
+          description: Eliminado
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/orders/{id}/parts/{partId}/serial:
+    post:
+      tags: [orders]
+      operationId: registerPartSerial
+      summary: Registrar serial de repuesto
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+        - name: partId
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SerialRequest'
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '200':
+          description: Resultado (puede ser rechazo genérico sin revelar otra moto)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SerialResult' }
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/orders/{id}/parts/{partId}/authenticity:
+    post:
+      tags: [orders]
+      operationId: recordAuthenticity
+      summary: Registrar evidencia de autenticidad
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+        - name: partId
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthenticityRequest'
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '200':
+          description: OK
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/orders/{id}/photos:
+    post:
+      tags: [orders]
+      operationId: addOrderPhoto
+      summary: Adjuntar foto a la orden
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PhotoRequest'
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '201':
+          description: Foto registrada
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/orders/{id}/payments:
+    post:
+      tags: [orders]
+      operationId: registerPayment
+      summary: Registrar pago
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '201':
+          description: Pago registrado
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/payments/{id}/void:
+    post:
+      tags: [orders]
+      operationId: voidPayment
+      summary: Anular pago
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoidPaymentRequest'
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '204':
+          description: Anulado
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/orders/{id}/delivery:
+    post:
+      tags: [orders]
+      operationId: deliverOrder
+      summary: Entregar orden
+      description: |
+        Devuelve `claimCode` una sola vez (`Cache-Control: no-store`).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeliveryRequest'
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '200':
+          description: Entregada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeliveryResponse' }
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/catalog/products/{code}:
+    get:
+      tags: [catalog]
+      operationId: scanProduct
+      summary: Consultar producto por código
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema: { type: string }
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '200':
+          description: OK
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/catalog/products:
+    post:
+      tags: [catalog]
+      operationId: proposeProduct
+      summary: Proponer producto al catálogo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProposeProductRequest'
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '201':
+          description: Producto creado
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/serials/{id}/retire:
+    post:
+      tags: [catalog]
+      operationId: retireSerial
+      summary: Retirar serial global
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RetireSerialRequest'
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '204':
+          description: Retirado
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/files:
+    post:
+      tags: [files]
+      operationId: uploadFile
+      summary: Subir imagen
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: JPEG, PNG o WebP; máximo 8 MB. El servidor re-codifica y elimina EXIF.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '201':
+          description: Archivo almacenado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FileIdResponse' }
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/files/{id}:
+    get:
+      tags: [files]
+      operationId: downloadFile
+      summary: Descargar imagen
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '200':
+          description: Bytes de imagen
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/motorcycles/{id}/history:
+    get:
+      tags: [history]
+      operationId: viewHistory
+      summary: Historial en taller
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '200':
+          description: OK
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/motorcycles/{id}/history/amendments:
+    post:
+      tags: [history]
+      operationId: createAmendment
+      summary: Enmienda de entrada
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AmendmentRequest'
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '201':
+          description: Enmienda registrada
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/motorcycles/{id}/history/odometer-changes:
+    post:
+      tags: [history]
+      operationId: declareOdometerChange
+      summary: Cambio de odómetro
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OdometerChangeRequest'
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '201':
+          description: Entrada registrada
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/motorcycles/{id}/links:
+    post:
+      tags: [history]
+      operationId: createPublicLink
+      summary: Crear link público (taller)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LinkRequest'
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '201':
+          description: Link creado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PublicLinkResponse' }
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/links/{id}:
+    delete:
+      tags: [history]
+      operationId: revokeLink
+      summary: Revocar link
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '204':
+          description: Revocado
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/public/v/{token}:
+    get:
+      tags: [history]
+      operationId: viewPublicHistory
+      summary: Ver historial por token
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema: { type: string }
+      security: []
+      responses:
+        '200':
+          description: OK
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/owner/motorcycles/{id}/history:
+    get:
+      tags: [owner]
+      operationId: ownerViewHistory
+      summary: Historial como propietario
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: OK
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/owner/motorcycles/{id}/links:
+    post:
+      tags: [owner]
+      operationId: ownerCreateLink
+      summary: Crear link como propietario
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LinkRequest'
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        '201':
+          description: Link creado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PublicLinkResponse' }
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/cashdesk/counts/{day}:
+    get:
+      tags: [cashdesk]
+      operationId: getCashCount
+      summary: Cuadre del día
+      parameters:
+        - name: day
+          in: path
+          required: true
+          schema: { type: string, format: date, description: Día en America/Bogota (AAAA-MM-DD) }
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '200':
+          description: OK
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/cashdesk/counts/{day}/close:
+    post:
+      tags: [cashdesk]
+      operationId: closeCashCount
+      summary: Cerrar cuadre
+      parameters:
+        - name: day
+          in: path
+          required: true
+          schema: { type: string, format: date, description: Día en America/Bogota (AAAA-MM-DD) }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CloseCashCountRequest'
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '200':
+          description: OK
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/cashdesk/counts/{day}/reopen:
+    post:
+      tags: [cashdesk]
+      operationId: reopenCashCount
+      summary: Reabrir cuadre
+      parameters:
+        - name: day
+          in: path
+          required: true
+          schema: { type: string, format: date, description: Día en America/Bogota (AAAA-MM-DD) }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReasonRequest'
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '200':
+          description: OK
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/cashdesk/alerts:
+    get:
+      tags: [cashdesk]
+      operationId: listLeakAlerts
+      summary: Alertas de fuga
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [PENDING, RESOLVED] }
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '200':
+          description: OK
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/cashdesk/alerts/{id}/resolve:
+    post:
+      tags: [cashdesk]
+      operationId: resolveLeakAlert
+      summary: Resolver alerta
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentRequest'
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '204':
+          description: Resuelta
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/owner/claims:
+    post:
+      tags: [owner]
+      operationId: claimMotorcycle
+      summary: Reclamar moto con código de entrega
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClaimRequest'
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        '200':
+          description: Moto reclamada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  motorcycleId: { $ref: '#/components/schemas/Uuid' }
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/owner/motorcycles:
+    get:
+      tags: [owner]
+      operationId: listOwnerMotorcycles
+      summary: Mis motos
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: OK
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/owner/motorcycles/{id}/transfers:
+    post:
+      tags: [owner]
+      operationId: startOwnershipTransfer
+      summary: Iniciar traspaso
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        '201':
+          description: Código de traspaso (7 días, una vez)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TransferStartResponse' }
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/owner/transfers/{code}/accept:
+    post:
+      tags: [owner]
+      operationId: acceptOwnershipTransfer
+      summary: Aceptar traspaso
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema: { type: string }
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        '200':
+          description: Traspaso completado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  motorcycleId: { $ref: '#/components/schemas/Uuid' }
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: SESSION
+      description: Sesión JDBC de Spring Security (8 h de inactividad).
+    csrfToken:
+      type: apiKey
+      in: header
+      name: X-XSRF-TOKEN
+      description: Valor de la cookie `XSRF-TOKEN` en mutaciones.
+    workshopId:
+      type: apiKey
+      in: header
+      name: X-Workshop-Id
+      description: UUID del taller activo; debe ser una membresía del usuario.
+
+  schemas:
+    ProblemDetails:
+      type: object
+      required: [type, title, status, code]
+      properties:
+        type:
+          type: string
+          example: about:blank
+        title:
+          type: string
+          description: Mensaje en español (puede cambiar; preferir traducir `code` en el cliente).
+        status:
+          type: integer
+        code:
+          type: string
+          description: Código estable en inglés (ver catálogo en docs/api.md).
+        traceId:
+          type: string
+          description: Solo en errores 500 para soporte.
+
+    Uuid:
+      type: string
+      format: uuid
+
+    RegisterRequest:
+      type: object
+      required: [email, password, displayName]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 12, maxLength: 128 }
+        displayName: { type: string, minLength: 1, maxLength: 120 }
+
+    UserIdResponse:
+      type: object
+      properties:
+        userId: { $ref: '#/components/schemas/Uuid' }
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+
+    WorkshopRole:
+      type: object
+      properties:
+        workshopId: { $ref: '#/components/schemas/Uuid' }
+        role:
+          type: string
+          enum: [WORKSHOP_OWNER, MECHANIC, FRONT_DESK]
+
+    MeResponse:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        email: { type: string }
+        displayName: { type: string }
+        platformAdmin: { type: boolean }
+        memberships:
+          type: array
+          items: { $ref: '#/components/schemas/WorkshopRole' }
+
+    RegisterWorkshopRequest:
+      type: object
+      required: [name, documentNumber, address, municipality, phone]
+      properties:
+        name: { type: string }
+        documentNumber: { type: string }
+        address: { type: string }
+        municipality: { type: string }
+        phone: { type: string }
+        facadePhotoId: { $ref: '#/components/schemas/Uuid' }
+
+    WorkshopIdResponse:
+      type: object
+      properties:
+        workshopId: { $ref: '#/components/schemas/Uuid' }
+
+    WorkshopSettingsRequest:
+      type: object
+      required: [intakeAlertHours, cashTolerance, stalledDays, version]
+      properties:
+        intakeAlertHours: { type: integer, minimum: 1, maximum: 168 }
+        cashTolerance: { type: integer, format: int64, minimum: 0 }
+        stalledDays: { type: integer, minimum: 1, maximum: 90 }
+        version: { type: integer, format: int64 }
+
+    InviteRequest:
+      type: object
+      required: [email, role]
+      properties:
+        email: { type: string, format: email }
+        role:
+          type: string
+          enum: [MECHANIC, FRONT_DESK]
+
+    InviteResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: Token de invitación; se muestra una sola vez.
+
+    AdminStatusRequest:
+      type: object
+      required: [status, evidence]
+      properties:
+        status:
+          type: string
+          enum: [VERIFIED, SUSPENDED, PENDING_VERIFICATION]
+        evidence: { type: string }
+
+    IntakeRegisterRequest:
+      type: object
+      required: [mileage, odometerPhotoId, motorcyclePhotoId]
+      properties:
+        plate: { type: string }
+        vin: { type: string }
+        brand: { type: string }
+        line: { type: string }
+        modelYear: { type: integer }
+        displacementCc: { type: integer }
+        mileage: { type: integer, minimum: 0, maximum: 999999 }
+        odometerPhotoId: { $ref: '#/components/schemas/Uuid' }
+        motorcyclePhotoId: { $ref: '#/components/schemas/Uuid' }
+
+    DiscardRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          enum: [CONSULTATION_ONLY, CUSTOMER_WITHDREW, ENTRY_ERROR]
+
+    CreateCustomerRequest:
+      type: object
+      required: [fullName, phone, consentAccepted, policyVersion, consentChannel]
+      properties:
+        fullName: { type: string }
+        phone: { type: string }
+        nationalId: { type: string }
+        email: { type: string, format: email }
+        consentAccepted: { type: boolean }
+        policyVersion: { type: string }
+        consentChannel:
+          type: string
+          enum: [IN_PERSON, PHONE, EMAIL, OTHER]
+
+    UpdateCustomerRequest:
+      type: object
+      required: [fullName, phone, nationalId, email]
+      properties:
+        fullName: { type: string }
+        phone: { type: string }
+        nationalId: { type: string }
+        email: { type: string, format: email }
+
+    CustomerResponse:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        fullName: { type: string }
+        phone: { type: string }
+        nationalId: { type: string }
+        email: { type: string }
+
+    OpenOrderRequest:
+      type: object
+      required: [intakeId, diagnosis]
+      properties:
+        intakeId: { $ref: '#/components/schemas/Uuid' }
+        customerId: { $ref: '#/components/schemas/Uuid' }
+        diagnosis: { type: string, minLength: 10, maxLength: 2000 }
+        mechanicId: { $ref: '#/components/schemas/Uuid' }
+        warrantyOfOrderId: { $ref: '#/components/schemas/Uuid' }
+
+    JobInput:
+      type: object
+      required: [type, description]
+      properties:
+        type:
+          type: string
+          enum: [OIL_CHANGE, DRIVE_CHAIN_KIT, BRAKES, SUSPENSION, ELECTRICAL, ENGINE, TIRES, TUNE_UP, OTHER]
+        description: { type: string }
+
+    EditOrderRequest:
+      type: object
+      required: [version]
+      properties:
+        version: { type: integer, format: int64 }
+        diagnosis: { type: string }
+        laborCost: { type: integer, format: int64 }
+        warrantyDays: { type: integer }
+        warrantyKm: { type: integer }
+        jobs:
+          type: array
+          items: { $ref: '#/components/schemas/JobInput' }
+
+    TransitionRequest:
+      type: object
+      required: [status, version]
+      properties:
+        status:
+          type: string
+          enum: [OPEN, IN_PROGRESS, COMPLETED, CANCELLED]
+        reason: { type: string }
+        version: { type: integer, format: int64 }
+
+    PartRequest:
+      type: object
+      required: [name, brand, condition, quantity, unitPrice]
+      properties:
+        name: { type: string }
+        reference: { type: string }
+        brand: { type: string }
+        condition:
+          type: string
+          enum: [OEM, AFTERMARKET, USED]
+        quantity: { type: integer, minimum: 1, maximum: 999 }
+        unitPrice: { type: integer, format: int64 }
+        productCode: { type: string }
+        replacementPhotoId: { $ref: '#/components/schemas/Uuid' }
+
+    SerialRequest:
+      type: object
+      required: [serial]
+      properties:
+        serial: { type: string }
+        reactivationReason: { type: string }
+
+    SerialResult:
+      type: object
+      properties:
+        accepted: { type: boolean }
+        evidenceLevel: { type: string }
+        message: { type: string }
+
+    AuthenticityRequest:
+      type: object
+      required: [photoId, method]
+      properties:
+        photoId: { $ref: '#/components/schemas/Uuid' }
+        method: { type: string }
+
+    PhotoRequest:
+      type: object
+      required: [fileId, moment]
+      properties:
+        fileId: { $ref: '#/components/schemas/Uuid' }
+        moment:
+          type: string
+          enum: [BEFORE, AFTER]
+
+    PaymentRequest:
+      type: object
+      required: [method, amount]
+      properties:
+        method:
+          type: string
+          enum: [CASH, TRANSFER, CARD, STORE_CREDIT]
+        amount: { type: integer, format: int64 }
+
+    VoidPaymentRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string }
+
+    DeliveryRequest:
+      type: object
+      required: [version]
+      properties:
+        version: { type: integer, format: int64 }
+
+    DeliveryResponse:
+      type: object
+      properties:
+        orderId: { $ref: '#/components/schemas/Uuid' }
+        total: { type: integer, format: int64 }
+        claimCode:
+          type: string
+          description: Código de 8 caracteres; una sola vez (Cache-Control no-store).
+        claimCodeExpiresAt: { type: string, format: date-time }
+
+    ProposeProductRequest:
+      type: object
+      required: [code, name, brand]
+      properties:
+        code: { type: string }
+        name: { type: string }
+        brand: { type: string }
+        reference: { type: string }
+
+    RetireSerialRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 5, maxLength: 200 }
+
+    FileIdResponse:
+      type: object
+      properties:
+        fileId: { $ref: '#/components/schemas/Uuid' }
+
+    AmendmentRequest:
+      type: object
+      required: [amendsSeq, reason]
+      properties:
+        amendsSeq: { type: integer, format: int64 }
+        reason: { type: string }
+        diagnosis: { type: string }
+        mileage: { type: integer }
+
+    OdometerChangeRequest:
+      type: object
+      required: [mileage, reason, photoId]
+      properties:
+        mileage: { type: integer }
+        reason: { type: string }
+        photoId: { $ref: '#/components/schemas/Uuid' }
+
+    LinkRequest:
+      type: object
+      properties:
+        days: { type: integer, minimum: 1, maximum: 365, default: 30 }
+
+    PublicLinkResponse:
+      type: object
+      properties:
+        linkId: { $ref: '#/components/schemas/Uuid' }
+        token:
+          type: string
+          description: Se devuelve una sola vez.
+        expiresAt: { type: string, format: date-time }
+
+    CloseCashCountRequest:
+      type: object
+      required: [counted]
+      properties:
+        counted: { type: integer, format: int64 }
+
+    ReasonRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 10, maxLength: 500 }
+
+    CommentRequest:
+      type: object
+      required: [comment]
+      properties:
+        comment: { type: string, minLength: 5, maxLength: 500 }
+
+    ClaimRequest:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          minLength: 8
+          maxLength: 8
+
+    TransferStartResponse:
+      type: object
+      properties:
+        code: { type: string }
+        expiresAt: { type: string, format: date-time }
+
+  responses:
+    BadRequest:
+      description: Parámetro o encabezado inválido (`WORKSHOP_REQUIRED`, `INVALID_WORKSHOP_ID`, …)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+    Unauthenticated:
+      description: Sin sesión (`UNAUTHENTICATED`)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+    Forbidden:
+      description: Rol sin permiso o CSRF ausente (`FORBIDDEN`)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+    NotFound:
+      description: No existe o es de otro taller (`NOT_FOUND`, …)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+    Conflict:
+      description: Conflicto de versión o estado (`VERSION_CONFLICT`, …)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+    Unprocessable:
+      description: Regla de negocio o validación (`422` + `code`)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+    WorkshopSuspended:
+      description: Taller suspendido (`WORKSHOP_SUSPENDED`)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+    RateLimited:
+      description: Demasiados intentos (`RATE_LIMITED`)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+    InternalError:
+      description: Error inesperado (`INTERNAL_ERROR` + `traceId`)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }

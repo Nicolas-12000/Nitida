@@ -1,0 +1,34 @@
+{
+  "properties": [
+    {
+      "name": "nitida.openapi.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Exposes Swagger UI and /v3/api-docs (dev only)."
+    },
+    {
+      "name": "nitida.signing.kek",
+      "type": "java.lang.String",
+      "description": "Base64-encoded 32-byte KEK for workshop signing keys."
+    },
+    {
+      "name": "nitida.signing.kek-version",
+      "type": "java.lang.Integer",
+      "description": "Active KEK version stored with encrypted workshop keys."
+    },
+    {
+      "name": "nitida.files.root",
+      "type": "java.lang.String",
+      "description": "Directory on disk for sanitized uploaded images."
+    },
+    {
+      "name": "nitida.privacy.policy-version",
+      "type": "java.lang.String",
+      "description": "Current privacy policy version required for customer consent."
+    },
+    {
+      "name": "nitida.login.ip-limit",
+      "type": "java.lang.Integer",
+      "description": "Max failed logins per IP within the rate-limit window."
+    }
+  ]
+}

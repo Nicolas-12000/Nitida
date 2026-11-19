@@ -199,6 +199,8 @@ jobs:
       NITIDA_SIGNING_KEK: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
       NITIDA_COOKIE_SECURE: 'false'
       BACKEND_IMAGE: nitida-backend:ci
+      # Same compose file as local, but without the dev profile: Swagger stays closed during DAST.
+      SPRING_PROFILES_ACTIVE: ci
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

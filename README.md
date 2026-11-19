@@ -1,0 +1,73 @@
+# Nítida
+
+SaaS para talleres de motos: recepción, órdenes de trabajo, pagos, caja y un **historial de cada moto firmado y verificable** por un link público. Proyecto final de *Pruebas y Seguridad*.
+
+- `backend/` — Spring Boot 4 (Java 21), monolito modular con Spring Modulith. Lo que se evalúa aquí.
+- `frontend/` — Next.js; lo desarrolla otra persona contra [`docs/api.md`](docs/api.md).
+- [`Nitida-especificacion.md`](Nitida-especificacion.md) — la spec: manda en negocio, seguridad y API.
+- [`backend/planmvp.md`](backend/planmvp.md) — estado del MVP contra la spec y lo que falta.
+
+## Arranque
+
+Requisitos: JDK 21 y Docker (solo para `docker compose`).
+
+```bash
+cp .env.example .env        # y completa los tres valores (abajo)
+docker compose up           # postgres, backend (:8080) y mailpit (:8025)
+```
+
+| Variable | Qué es |
+|---|---|
+| `POSTGRES_PASSWORD` | Clave de la base. Obligatoria: `docker compose` no arranca sin ella |
+| `NITIDA_SIGNING_KEK` | Llave de 32 bytes en base64 que cifra las llaves de firma de los talleres. **No va al repositorio.** Generar con `openssl rand -base64 32` |
+| `NITIDA_COOKIE_SECURE` | `true` (por defecto). Solo `false` en desarrollo local por HTTP |
+
+Sin Docker, las pruebas usan H2 en modo PostgreSQL: no necesitan nada instalado.
+
+## Comandos
+
+Desde `backend/`:
+
+```bash
+./gradlew build      # compila, corre las pruebas, ArchUnit, Spring Modulith verify y la regla de cobertura JaCoCo
+./gradlew pitest     # pruebas de mutación del dominio (falla bajo el umbral del build)
+./gradlew test --tests 'co.nitida.security.*'   # reglas ArchUnit de seguridad, matriz de acceso y pruebas OWASP
+```
+
+Contrato HTTP: [`docs/api.md`](docs/api.md) (prosa) y [`docs/openapi.yaml`](docs/openapi.yaml) (OpenAPI 3). `docker compose up` activa el perfil `dev` y abre Swagger UI en http://localhost:8080/swagger-ui.html. Sin ese perfil (pruebas, CI, un arranque normal) la UI y `/openapi.yaml` responden cerrado. El YAML no se genera: se edita en `docs/` y el build lo empaqueta.
+
+Los informes quedan en `backend/build/reports/` (`tests`, `jacoco`, `pitest`).
+
+## Calidad y seguridad
+
+| Qué | Dónde |
+|---|---|
+| Mapa OWASP Top 10:2025 → control → prueba → archivo | [`docs/owasp-top10.md`](docs/owasp-top10.md) |
+| Modelo de amenazas (STRIDE) | [`docs/amenazas.md`](docs/amenazas.md) |
+| Decisiones de arquitectura | [`docs/decisiones/`](docs/decisiones/README.md) |
+| Diagramas de módulos (los regenera `ArchitectureTest`) | [`docs/modulos/`](docs/modulos) |
+| Contrato HTTP para el frontend | [`docs/api.md`](docs/api.md) |
+
+### SonarQube
+
+El CI analiza con SonarQube cuando existen el secret `SONAR_TOKEN` y la variable `SONAR_HOST_URL` en GitHub (si faltan, el paso se omite sin fallar) y espera el Quality Gate. Para correrlo localmente:
+
+```bash
+docker run -d -p 9000:9000 sonarqube:community      # luego crea un token en http://localhost:9000
+cd backend && ./gradlew build
+sonar-scanner -Dsonar.host.url=http://localhost:9000 -Dsonar.token=<token>   # desde la raíz; usa sonar-project.properties
+```
+
+### Pipeline (`.github/workflows/ci.yml`)
+
+Detecta qué cambió y solo corre lo necesario. Siempre: gitleaks y Trivy sobre el repositorio. Con cambios en el backend: compilación y pruebas (más Sonar), mutación con PIT, imagen (Trivy, Grype, ZAP) y SBOM en `main`. Con cambios en el frontend: tipos y lint. CodeQL corre aparte. El check que se exige en la rama es **`CI passed`**.
+
+## Lo que la firma del historial garantiza (y lo que no)
+
+Cada entrada del historial se encadena con la anterior (SHA-256 sobre JSON canónico RFC 8785) y se firma con Ed25519 con la llave de su taller. Eso prueba **integridad** y **qué cuenta de taller registró qué y cuándo dentro de la plataforma**: cualquier alteración o borrado posterior se detecta al verificar.
+
+**No** es no-repudio fuerte frente a la plataforma: el servidor guarda las llaves privadas (cifradas con la KEK), así que quien controle el servidor, la base y la KEK podría reescribir una cadena completa. La mitigación prevista, fuera del MVP, es publicar periódicamente las cabezas de cadena en un registro externo.
+
+## Límites conocidos
+
+Ver el checklist de [`backend/planmvp.md`](backend/planmvp.md). Los más relevantes: sin RLS en PostgreSQL (el aislamiento entre talleres es de aplicación), sin TOTP, listados sin paginación por cursor y límite de intentos en memoria (una instancia).
