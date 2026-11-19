@@ -30,6 +30,11 @@ public class ClaimCode extends AssignedIdEntity {
 
     protected ClaimCode() {}
 
+    /** Codes are typed by hand: case and surrounding spaces do not matter. */
+    public static String normalize(String code) {
+        return code == null ? "" : code.strip().toUpperCase(java.util.Locale.ROOT);
+    }
+
     public ClaimCode(UUID id, UUID motorcycleId, String kind, String codeHash, UUID createdBy, Instant expiresAt) {
         super(id);
         this.motorcycleId = motorcycleId;
@@ -47,4 +52,5 @@ public class ClaimCode extends AssignedIdEntity {
 
     public UUID getMotorcycleId() { return motorcycleId; }
     public String getKind() { return kind; }
+    public UUID getCreatedBy() { return createdBy; }
 }

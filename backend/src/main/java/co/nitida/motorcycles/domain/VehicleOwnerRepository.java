@@ -9,4 +9,8 @@ public interface VehicleOwnerRepository extends JpaRepository<VehicleOwner, UUID
     Optional<VehicleOwner> findByMotorcycleIdAndValidToIsNull(UUID motorcycleId);
 
     List<VehicleOwner> findByUserIdAndValidToIsNull(UUID userId);
+
+    List<VehicleOwner> findByUserIdOrderByValidFromDesc(UUID userId);
+
+    Optional<VehicleOwner> findFirstByUserIdAndMotorcycleIdOrderByValidFromDesc(UUID userId, UUID motorcycleId);
 }

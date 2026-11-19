@@ -5,6 +5,7 @@ import co.nitida.history.application.CreatePublicLinkUseCase;
 import co.nitida.history.application.DeclareOdometerChangeUseCase;
 import co.nitida.history.application.RevokePublicLinkUseCase;
 import co.nitida.history.application.ViewHistoryUseCases;
+import co.nitida.identity.AuthenticatedUser;
 import co.nitida.shared.WorkshopContext;
 import java.util.UUID;
 import org.springframework.http.CacheControl;
@@ -57,6 +58,17 @@ class HistoryHandler {
         var days = req.body(LinkRequest.class).days();
         return ServerResponse.status(HttpStatus.CREATED).body(createLink.execute(new CreatePublicLinkUseCase.Command(
                 WorkshopContext.current(), UUID.fromString(req.pathVariable("id")), days)));
+    }
+
+    ServerResponse viewAsOwner(ServerRequest req) {
+        return ServerResponse.ok().body(view.viewAsOwner(new ViewHistoryUseCases.OwnerCommand(
+                AuthenticatedUser.current().userId(), UUID.fromString(req.pathVariable("id")))));
+    }
+
+    ServerResponse createOwnerLink(ServerRequest req) throws Exception {
+        var days = req.body(LinkRequest.class).days();
+        return ServerResponse.status(HttpStatus.CREATED).body(createLink.execute(new CreatePublicLinkUseCase.OwnerCommand(
+                AuthenticatedUser.current().userId(), UUID.fromString(req.pathVariable("id")), days)));
     }
 
     ServerResponse revokeLink(ServerRequest req) {

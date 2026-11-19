@@ -7,6 +7,9 @@ import java.util.UUID;
 
 /** Public API of the workshops module. */
 public interface WorkshopsApi {
+    /** The platform's own signing identity (migration V13): signs entries no workshop performed, e.g. OWNERSHIP_TRANSFER. */
+    UUID PLATFORM_ID = UUID.fromString("00000000-0000-7000-8000-000000000001");
+
     record WorkshopInfo(UUID id, String name, String municipality, WorkshopStatus status, Instant verifiedAt,
                         Instant suspendedAt, int intakeAlertHours, long cashTolerance, int stalledDays) {
         public boolean verified() { return status == WorkshopStatus.VERIFIED; }

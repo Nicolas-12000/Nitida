@@ -41,4 +41,6 @@ public class VehicleOwner extends AssignedIdEntity {
     public UUID getMotorcycleId() { return motorcycleId; }
     public UUID getUserId() { return userId; }
     public boolean isActive() { return validTo == null; }
+    public Instant getValidFrom() { return validFrom; }
+    public Instant getValidTo() { return validTo; }
 }

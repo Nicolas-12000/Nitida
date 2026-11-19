@@ -3,6 +3,7 @@ package co.nitida.history.application;
 import co.nitida.history.application.HistoryViews.HistoryView;
 import co.nitida.history.domain.PublicLinkRepository;
 import co.nitida.intake.IntakeApi;
+import co.nitida.motorcycles.MotorcyclesApi;
 import co.nitida.shared.ApiException;
 import co.nitida.shared.RateLimiter;
 import co.nitida.shared.WorkshopContext;
@@ -19,15 +20,19 @@ public class ViewHistoryUseCases {
 
     public record WorkshopCommand(WorkshopContext ctx, UUID motorcycleId) {}
 
+    public record OwnerCommand(UUID userId, UUID motorcycleId) {}
+
     private final PublicLinkRepository links;
     private final IntakeApi intakes;
+    private final MotorcyclesApi motorcycles;
     private final HistoryViews views;
     private final Clock clock;
     private final RateLimiter publicLimiter;
 
-    ViewHistoryUseCases(PublicLinkRepository links, IntakeApi intakes, HistoryViews views, Clock clock) {
+    ViewHistoryUseCases(PublicLinkRepository links, IntakeApi intakes, MotorcyclesApi motorcycles, HistoryViews views, Clock clock) {
         this.links = links;
         this.intakes = intakes;
+        this.motorcycles = motorcycles;
         this.views = views;
         this.clock = clock;
         this.publicLimiter = new RateLimiter(60, 60_000, clock); // per IP and minute (RN-74)
@@ -48,5 +53,12 @@ public class ViewHistoryUseCases {
     public HistoryView viewAsWorkshop(WorkshopCommand c) {
         if (!intakes.hasReceived(c.ctx().workshopId(), c.motorcycleId())) throw ApiException.notFound();
         return views.of(c.motorcycleId());
+    }
+
+    /** RN-82: an owner sees the whole past of their motorcycle; a former owner, nothing recorded after they sold it. */
+    @Transactional(readOnly = true)
+    public HistoryView viewAsOwner(OwnerCommand c) {
+        var period = motorcycles.ownership(c.userId(), c.motorcycleId()).orElseThrow(ApiException::notFound);
+        return views.of(c.motorcycleId(), period.to());
     }
 }

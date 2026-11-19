@@ -1,6 +1,7 @@
 package co.nitida.history.application;
 
 import co.nitida.motorcycles.MotorcycleRegistered;
+import co.nitida.motorcycles.OwnershipTransferred;
 import co.nitida.shared.events.OrderDelivered;
 import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
@@ -21,6 +22,11 @@ class HistoryListeners {
 
     @ApplicationModuleListener
     void on(MotorcycleRegistered event) {
+        record.execute(event);
+    }
+
+    @ApplicationModuleListener
+    void on(OwnershipTransferred event) {
         record.execute(event);
     }
 }

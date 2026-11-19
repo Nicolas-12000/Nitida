@@ -45,7 +45,7 @@ class WorkshopsApiImpl implements WorkshopsApi {
     @Override
     @Transactional(readOnly = true)
     public List<WorkshopInfo> all() {
-        return workshops.findAll().stream().map(WorkshopsApiImpl::info).toList();
+        return workshops.findAll().stream().filter(w -> !PLATFORM_ID.equals(w.getId())).map(WorkshopsApiImpl::info).toList();
     }
 
     @Override

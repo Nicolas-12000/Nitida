@@ -18,7 +18,9 @@ class HistoryRoutes {
                         .POST("/motorcycles/{id}/history/odometer-changes", h::odometerChange)
                         .POST("/motorcycles/{id}/links", h::createLink)
                         .DELETE("/links/{id}", h::revokeLink)
-                        .GET("/public/v/{token}", h::viewPublic))
+                        .GET("/public/v/{token}", h::viewPublic)
+                        .GET("/owner/motorcycles/{id}/history", h::viewAsOwner)
+                        .POST("/owner/motorcycles/{id}/links", h::createOwnerLink))
                 .build();
     }
 }

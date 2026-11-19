@@ -39,12 +39,21 @@ class HistoryViews {
     }
 
     HistoryView of(UUID motorcycleId) {
+        return of(motorcycleId, null);
+    }
+
+    /**
+     * Entries recorded before {@code until} (exclusive; null = all). The verification always covers the whole chain:
+     * hiding later entries from a former owner must not change whether the chain is valid (RN-82).
+     */
+    HistoryView of(UUID motorcycleId, Instant until) {
         var moto = motorcycles.find(motorcycleId).orElseThrow(co.nitida.shared.ApiException::notFound);
         List<HistoryEntry> chain = entries.findByMotorcycleIdOrderBySeqAsc(motorcycleId);
         var shops = workshops.findAll(chain.stream().map(HistoryEntry::getWorkshopId).distinct().toList());
         int total = 0, withEvidence = 0, transfers = 0;
         var views = new java.util.ArrayList<EntryView>();
         for (var e : chain) {
+            if (until != null && !e.getRecordedAt().isBefore(until)) break;
             var content = (Map<?, ?>) Json.mapper().readValue(e.getPublicContent(), Object.class);
             var shop = shops.get(e.getWorkshopId());
             if (e.getType() == EntryType.OWNERSHIP_TRANSFER) transfers++;

@@ -10,6 +10,7 @@ import co.nitida.motorcycles.domain.MotorcycleRepository;
 import co.nitida.motorcycles.domain.PlateHistory;
 import co.nitida.motorcycles.domain.PlateHistoryRepository;
 import co.nitida.motorcycles.domain.VehicleIdentifiers;
+import co.nitida.motorcycles.domain.VehicleOwnerRepository;
 import co.nitida.shared.ApiException;
 import co.nitida.shared.Mileage;
 import co.nitida.shared.UuidV7;
@@ -26,15 +27,17 @@ class MotorcyclesApiImpl implements MotorcyclesApi {
     private final PlateHistoryRepository plates;
     private final CustomerRepository customers;
     private final ClaimCodeRepository claimCodes;
+    private final VehicleOwnerRepository owners;
     private final ApplicationEventPublisher events;
     private final Clock clock;
 
     MotorcyclesApiImpl(MotorcycleRepository motorcycles, PlateHistoryRepository plates, CustomerRepository customers,
-                       ClaimCodeRepository claimCodes, ApplicationEventPublisher events, Clock clock) {
+                       ClaimCodeRepository claimCodes, VehicleOwnerRepository owners, ApplicationEventPublisher events, Clock clock) {
         this.motorcycles = motorcycles;
         this.plates = plates;
         this.customers = customers;
         this.claimCodes = claimCodes;
+        this.owners = owners;
         this.events = events;
         this.clock = clock;
     }
@@ -107,5 +110,12 @@ class MotorcyclesApiImpl implements MotorcyclesApi {
         return new MotorcycleInfo(m.getId(), m.getVin(), m.getCurrentPlate(), VehicleIdentifiers.maskPlate(m.getCurrentPlate()),
                 m.isLegacyPlateFormat(), m.getBrand(),
                 m.getLine(), m.getModelYear(), m.getDisplacementCc());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<OwnershipPeriod> ownership(UUID userId, UUID motorcycleId) {
+        return owners.findFirstByUserIdAndMotorcycleIdOrderByValidFromDesc(userId, motorcycleId)
+                .map(o -> new OwnershipPeriod(o.getValidFrom(), o.getValidTo()));
     }
 }

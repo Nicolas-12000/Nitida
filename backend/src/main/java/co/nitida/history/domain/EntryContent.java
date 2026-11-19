@@ -131,6 +131,13 @@ public record EntryContent(String privateJson, String privateHash, LongFunction<
 
     private interface PublicBuilder { Map<String, Object> build(long seq, String privateHash); }
 
+    /** RN-82: only that the motorcycle changed hands; no names nor user ids in either content (RN-22). */
+    public static EntryContent ownershipTransfer(UUID motorcycleId, UUID platformId, Instant at, UUID transferId) {
+        var priv = new LinkedHashMap<String, Object>();
+        priv.put("transferId", transferId.toString());
+        return withHash(priv, (seq, privateHash) -> base(motorcycleId, seq, EntryType.OWNERSHIP_TRANSFER, platformId, true, at, privateHash));
+    }
+
     private static EntryContent withHash(Map<String, Object> privateMap, PublicBuilder builder) {
         var tmp = of(privateMap, seq -> Map.of());
         return new EntryContent(tmp.privateJson(), tmp.privateHash(), seq -> builder.build(seq, tmp.privateHash()));

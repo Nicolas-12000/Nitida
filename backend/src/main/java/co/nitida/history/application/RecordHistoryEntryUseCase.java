@@ -3,6 +3,7 @@ package co.nitida.history.application;
 import co.nitida.history.domain.EntryContent;
 import co.nitida.history.domain.EntryType;
 import co.nitida.motorcycles.MotorcycleRegistered;
+import co.nitida.motorcycles.OwnershipTransferred;
 import co.nitida.shared.events.OrderDelivered;
 import co.nitida.workshops.WorkshopsApi;
 import java.util.UUID;
@@ -37,6 +38,15 @@ public class RecordHistoryEntryUseCase {
         if (entries.existsBySource(source)) return;
         appender.append(e.motorcycleId(), EntryType.INITIAL_REGISTRATION, e.workshopId(), source,
                 EntryContent.initialRegistration(e.motorcycleId(), e.workshopId(), verified(e.workshopId()), e.declaredMileage(), e.occurredAt()));
+    }
+
+    /** RN-82: attested by the platform's own key, since no workshop performed it. */
+    @Transactional
+    public void execute(OwnershipTransferred e) {
+        String source = "TRANSFER:" + e.transferId();
+        if (entries.existsBySource(source)) return;
+        appender.append(e.motorcycleId(), EntryType.OWNERSHIP_TRANSFER, WorkshopsApi.PLATFORM_ID, source,
+                EntryContent.ownershipTransfer(e.motorcycleId(), WorkshopsApi.PLATFORM_ID, e.occurredAt(), e.transferId()));
     }
 
     /** RN-03/RN-65: only entries of VERIFIED workshops at that moment are marked verified. */

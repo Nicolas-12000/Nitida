@@ -30,4 +30,12 @@ public interface MotorcyclesApi {
     void issueClaimCode(UUID motorcycleId, String codeHash, java.time.Instant expiresAt);
 
     boolean customerBelongsTo(UUID customerId, UUID workshopId);
+
+    /** When the user owned the motorcycle; {@code to} is null while they still own it. */
+    record OwnershipPeriod(java.time.Instant from, java.time.Instant to) {
+        public boolean active() { return to == null; }
+    }
+
+    /** The user's most recent ownership of the motorcycle, if any (RN-81, RN-82). */
+    Optional<OwnershipPeriod> ownership(UUID userId, UUID motorcycleId);
 }

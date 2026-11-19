@@ -76,7 +76,9 @@ public abstract class OrderFlowTest extends IntegrationTest {
                 Map.of("method", method, "amount", amount)).andExpect(status().isCreated())).get("paymentId").asString());
     }
 
-    protected void deliver(Visit v) throws Exception {
-        post("/api/v1/orders/" + v.orderId() + "/delivery", v.shop().desk(), v.shop().ws(), Map.of("version", version(v))).andExpect(status().isOk());
+    /** Delivers and returns the claim code printed on the receipt (shown once, RN-80). */
+    protected String deliver(Visit v) throws Exception {
+        return json(post("/api/v1/orders/" + v.orderId() + "/delivery", v.shop().desk(), v.shop().ws(), Map.of("version", version(v)))
+                .andExpect(status().isOk())).get("claimCode").asString();
     }
 }
