@@ -16,6 +16,7 @@ import co.nitida.orders.application.VoidPaymentUseCase;
 import co.nitida.orders.domain.OrderPhoto;
 import co.nitida.orders.domain.PartCondition;
 import co.nitida.orders.domain.PaymentMethod;
+import co.nitida.shared.Page;
 import co.nitida.shared.WorkshopContext;
 import java.util.EnumSet;
 import java.util.List;
@@ -93,7 +94,10 @@ class OrderHandler {
     ServerResponse list(ServerRequest req) {
         var statuses = EnumSet.noneOf(OrderStatus.class);
         req.params().getOrDefault("status", List.of()).forEach(s -> statuses.add(OrderStatus.valueOf(s)));
-        return ServerResponse.ok().body(query.list(WorkshopContext.current(), statuses));
+        var page = query.list(WorkshopContext.current(), statuses, Page.limit(req.param("limit").orElse(null)), Page.position(req.param("cursor").orElse(null)));
+        var ok = ServerResponse.ok();
+        if (page.nextCursor() != null) ok.header(Page.HEADER, page.nextCursor());
+        return ok.body(page.items());
     }
 
     ServerResponse detail(ServerRequest req) {

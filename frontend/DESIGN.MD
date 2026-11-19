@@ -1,12 +1,14 @@
 ---
-version: 1.0
+version: 1.1
 name: Nítida
 description: >
   Sistema de diseño de Nítida, SaaS para talleres de motos con historial firmado y verificable.
   Claro por defecto sobre un lino cálido, tinta azul profunda para el texto, índigo como único
   color de acción, menta para lo confirmado y verificado, durazno para lo que requiere atención.
-  Tranquilo, serio y cómodo de leer bajo sol o con las manos sucias. Nada de degradados,
-  brillos ni adornos: la confianza la dan la claridad, la jerarquía y el sello de verificación.
+  Tranquilo, serio y cómodo de leer bajo sol o con las manos sucias. Se siente vivo por un
+  lenguaje propio de figuras geométricas en SVG (registro, eslabón, arco de tacómetro y sello)
+  animadas con propósito, no por degradados ni adornos. Proporciones por escala modular 1,25,
+  retícula de 4 px y radios anidados.
 inspiration:
   - "Linear: tokens desde pocas variables en OKLCH, un solo acento, jerarquía por superficies y bordes finos, tipografía cuidada"
   - "Stripe: tono financiero y de confianza, claro por defecto, tablas y formularios legibles, foco con anillo suave"
@@ -78,21 +80,32 @@ colors:
 typography:
   families:
     sans: "Inter Variable, ui-sans-serif, system-ui, sans-serif"
+    display: "Inter Display (corte óptico para 31 px o más), mismo respaldo que sans"
     mono: "JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, monospace"
   features: "font-feature-settings: 'cv11', 'ss01'; números con 'tnum' en montos, km y tablas"
-  scale:
-    display:  { size: 32px, weight: 600, lineHeight: 1.15, letterSpacing: -0.6px }
-    title:    { size: 24px, weight: 600, lineHeight: 1.20, letterSpacing: -0.4px }
-    heading:  { size: 20px, weight: 600, lineHeight: 1.25, letterSpacing: -0.2px }
-    subhead:  { size: 17px, weight: 500, lineHeight: 1.35, letterSpacing: -0.1px }
-    body:     { size: 16px, weight: 400, lineHeight: 1.50, letterSpacing: 0 }
-    body-sm:  { size: 14px, weight: 400, lineHeight: 1.45, letterSpacing: 0 }
-    label:    { size: 14px, weight: 500, lineHeight: 1.30, letterSpacing: 0 }
-    caption:  { size: 13px, weight: 400, lineHeight: 1.40, letterSpacing: 0 }
-    metric:   { size: 28px, weight: 600, lineHeight: 1.10, letterSpacing: -0.4px, numeric: tabular }
-    mono:     { size: 13px, weight: 400, lineHeight: 1.50, letterSpacing: 0 }
+  scale:   # razón modular 1,25 sobre 16 px; alto de línea en múltiplos de 4
+    hero-xl:  { size: 49px, weight: 600, lineHeight: 52px, letterSpacing: -1.4px }   # solo landing escritorio
+    hero:     { size: 39px, weight: 600, lineHeight: 44px, letterSpacing: -1.0px }   # landing móvil
+    display:  { size: 31px, weight: 600, lineHeight: 36px, letterSpacing: -0.6px }
+    title:    { size: 25px, weight: 600, lineHeight: 32px, letterSpacing: -0.4px }
+    heading:  { size: 20px, weight: 600, lineHeight: 28px, letterSpacing: -0.2px }
+    subhead:  { size: 20px, weight: 500, lineHeight: 28px, letterSpacing: -0.2px }
+    body:     { size: 16px, weight: 400, lineHeight: 24px, letterSpacing: 0 }
+    body-sm:  { size: 14px, weight: 400, lineHeight: 20px, letterSpacing: 0 }        # paso intermedio, UI densa
+    label:    { size: 14px, weight: 500, lineHeight: 20px, letterSpacing: 0 }
+    caption:  { size: 13px, weight: 400, lineHeight: 20px, letterSpacing: 0 }
+    metric:   { size: 31px, weight: 600, lineHeight: 36px, letterSpacing: -0.6px, numeric: tabular }  # 25px en móvil
+    mono:     { size: 13px, weight: 400, lineHeight: 20px, letterSpacing: 0 }
 
 spacing: { base: 4px, scale: [4, 8, 12, 16, 20, 24, 32, 40, 48, 64] }
+proportions: { typeRatio: 1.25, nestedRadius: "interior = exterior - padding", grid: 4px }
+brand:
+  mark: "N de un solo trazo continuo (7,5 en retícula de 64) con el punto menta del último registro firmado"
+  wordmark: "nítida en minúscula, Inter Display SemiBold, tilde de la í en menta"
+  files: [nitida-mark.svg, nitida-mark-mono.svg, nitida-lockup.svg, nitida-lockup-dark.svg, nitida-wordmark.svg, favicon.svg]
+illustration:
+  motifs: [registro, eslabón, arco de tacómetro, sello]
+  libraries: { animation: motion, optional: [gsap (solo landing), rive (fase 2)] }
 
 rounded:
   xs: 4px     # chips de estado, kbd
@@ -134,7 +147,8 @@ Este documento es la fuente única de verdad visual del frontend. La IA y las pe
 4. **La confianza se ve.** El sello de verificación es el único elemento de marca con protagonismo. Todo lo demás se mantiene en segundo plano para que el sello signifique algo.
 5. **Un color, un significado.** Índigo es acción. Menta es confirmado o verificado. Durazno es atención. Rojo es error o destrucción. Ningún color se usa como adorno.
 6. **Nunca solo color.** Todo estado lleva ícono y texto. Debe entenderse en blanco y negro.
-7. **Honestidad.** La interfaz no promete lo que el sistema no garantiza. Un historial "no verificable" no se pinta como válido. Un repuesto escaneado no se presenta como "original garantizado".
+7. **Vivo, con propósito.** La interfaz se siente viva por las figuras propias de la marca (sección 19) y por microinteracciones que confirman lo que pasó (sección 20.2). Nada se mueve solo para decorar.
+8. **Honestidad.** La interfaz no promete lo que el sistema no garantiza. Un historial "no verificable" no se pinta como válido. Un repuesto escaneado no se presenta como "original garantizado".
 
 ## 2. Paleta
 
@@ -205,6 +219,7 @@ En cada pantalla, aproximadamente: 70 % neutros (canvas, surface, ink), 20 % tex
 
 - **Inter Variable** para todo, autoalojada con `next/font/local`: sin llamadas a Google Fonts, por la CSP. **JetBrains Mono** para hashes, seriales, códigos de reclamo, placas en contexto técnico y el `traceId`.
 - Pesos: 400 cuerpo, 500 etiquetas y botones, 600 títulos. Nunca 700 ni 800.
+- Tamaños de la **escala modular 1,25** (sección 18.1): 13, 16, 20, 25, 31, 39, 49, más 14 para UI densa. Ningún otro tamaño. Títulos de 31 o más en **Inter Display** (el corte óptico para tamaños grandes).
 - **Números tabulares** (`font-variant-numeric: tabular-nums`) en montos, kilómetros, fechas en tablas y contadores. Las columnas de dinero se alinean a la derecha.
 - Formatos con `Intl` en `es-CO` y zona `America/Bogota`: `$ 125.000`, `18.420 km`, `12 mar 2026`, `12 mar 2026, 3:40 p. m.`.
 - Placas siempre en mayúsculas con separador visual: `ABC 12D`. En la API van sin espacio.
@@ -278,6 +293,7 @@ Reglas:
 - Animación al aparecer: escala de 0,92 a 1 y opacidad de 0 a 1 en 260 ms con `ease-out`, una sola vez. Sin rebote, sin confeti, sin brillo.
 - `INVALID` usa el mismo tamaño y posición, pero con `shield-x`, fondo `danger-soft` y el texto "No pudimos comprobar este historial". Debajo, una línea: "Puede que haya sido modificado fuera de Nítida. Pida al taller una copia actualizada." Al público no se le muestra qué registro falló ni datos técnicos. Al dueño del taller, sí: el número de registro y el tipo de fallo.
 - `UNVERIFIABLE` usa `shield-question`, fondo `attention-soft` y "Verificación no disponible en este momento". Nunca se presenta como válido. Es fail closed (falla cerrado).
+- Los SVG de los tres estados están en `illustrations/seal-*.svg` (sección 19.1); el componente `VerificationSeal` los usa en línea para heredar los tokens.
 - El sello nunca aparece mientras se verifica. Mientras tanto se muestra el skeleton del sello (sección 7).
 
 ### 6.5 Tarjetas y listas
@@ -374,7 +390,7 @@ Estructura: ícono de 24 px en `ink-muted` dentro de un círculo de 48 px `surfa
 | Búsqueda sin resultados | No encontramos "ABC 12D" | Revise la placa o registre la moto. | Registrar moto |
 | Mis motos | Agregue su moto | Use el código que le dio el taller al entregarla. | Ingresar código |
 
-Sin ilustraciones genéricas de personas, cohetes ni cajas vacías. Sin "¡Ups!", "Nada por aquí" ni emojis.
+En lugar del ícono en círculo, los estados vacíos principales usan la ilustración de 96 px del kit (sección 19.1). Nunca ilustraciones genéricas de personas, cohetes ni cajas vacías de bancos de imágenes. Sin "¡Ups!", "Nada por aquí" ni emojis.
 
 ## 9. Errores: qué mostrar y qué nunca mostrar
 
@@ -466,14 +482,15 @@ Tono neutro: la alerta describe un hecho, no acusa a nadie. Nunca "Posible robo"
 
 - **Degradados** de cualquier tipo, sobre todo morado a azul o rosa, en fondos, botones, textos o bordes.
 - Glassmorphism, `backdrop-blur` decorativo, brillos, resplandores, sombras de colores, textos con degradado o neón.
-- Fondos con mallas, ruido, cuadrículas, puntos, círculos difusos ("blobs") o auroras.
+- Fondos con mallas, ruido, cuadrículas, puntos, círculos difusos ("blobs") o auroras. Las únicas figuras permitidas son los cuatro motivos de la sección 19, con sus reglas.
+- Ilustraciones de bancos de imágenes, 3D genérico, isométricos de "oficina feliz" o personajes.
 - Hero de landing con titular gigante + subtítulo gris + dos botones + captura inclinada en 3D. La landing de Nítida, cuando exista, muestra el producto real y el sello.
 - Tarjetas de "features" en cuadrícula de 3 con ícono en un cuadrado de color y texto genérico.
 - Emojis en la interfaz, en títulos o como íconos.
 - Íconos de chispas, varitas, cohetes, rayos o cerebros.
 - Bordes gruesos de color a la izquierda de las tarjetas como adorno.
 - Todo redondeado al máximo (24 px o más en tarjetas, botones píldora en formularios).
-- Animaciones de entrada en cascada al hacer scroll, contadores que suben, efectos parallax.
+- Animaciones de entrada en cascada en cada bloque al hacer scroll, parallax, cursores personalizados, animaciones en bucle. Las únicas animaciones de entrada son las de la sección 19.4 (figuras) y 20.2 (microinteracciones), una vez.
 - Modo oscuro forzado como "look tech". El modo por defecto es claro.
 - Avatares e ilustraciones de stock de personas sonrientes.
 - Más de un acento compitiendo en la misma pantalla.
@@ -513,6 +530,7 @@ Tono neutro: la alerta describe un hecho, no acusa a nadie. Nunca "Posible robo"
 - Siempre `ease-out` al entrar. Sin rebotes, sin `spring` exagerados.
 - Nada se anima solo por estar en pantalla ni en bucle, salvo el skeleton y el spinner.
 - `prefers-reduced-motion`: solo opacidad, sin desplazamientos ni escala.
+- Implementación con **Motion** (sección 20). Recetas de figuras en 19.4 y microinteracciones en 20.2.
 
 ## 14. Implementación (Next.js + Tailwind v4 + shadcn/ui)
 
@@ -662,6 +680,17 @@ Tono neutro: la alerta describe un hecho, no acusa a nadie. Nunca "Posible robo"
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
 
+  --font-display: var(--font-inter-display), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --text-caption: 13px;   --text-caption--line-height: 20px;
+  --text-body-sm: 14px;   --text-body-sm--line-height: 20px;
+  --text-body: 16px;      --text-body--line-height: 24px;
+  --text-heading: 20px;   --text-heading--line-height: 28px;  --text-heading--letter-spacing: -0.2px;
+  --text-title: 25px;     --text-title--line-height: 32px;    --text-title--letter-spacing: -0.4px;
+  --text-display: 31px;   --text-display--line-height: 36px;  --text-display--letter-spacing: -0.6px;
+  --text-hero: 39px;      --text-hero--line-height: 44px;     --text-hero--letter-spacing: -1px;
+  --text-hero-xl: 49px;   --text-hero-xl--line-height: 52px;  --text-hero-xl--letter-spacing: -1.4px;
+
   --radius-xs: 4px;
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -720,11 +749,15 @@ El degradado de `.skeleton` es la **única** excepción a la regla de no usar de
 frontend/src/
 ├── app/                      # rutas (App Router); cada ruta con loading.tsx (skeleton) y error.tsx
 ├── components/ui/            # shadcn adaptados a estos tokens (button, input, badge, dialog, sheet, toast...)
+├── components/brand/         # Logo, Mark, Wordmark (SVG en línea, currentColor y tokens)
+├── components/illustrations/ # kit de la sección 19 como componentes con animación Motion opcional
 ├── components/nitida/        # componentes de dominio: VerificationSeal, OrderStatusBadge, EvidenceBadge,
 │                             # HistoryTimeline, MetricCard, EmptyState, ErrorBanner, Scanner, SkeletonList
 ├── lib/errors.ts             # mapa code -> mensaje (sección 9.4) y extracción segura del traceId
 ├── lib/format.ts             # moneda, km, fechas, placas, hashes (Intl es-CO)
 └── styles/globals.css
+frontend/public/brand/         # SVG de marca, favicon y PNG generados (32, 180, 512)
+frontend/public/illustrations/ # SVG del kit para usos fuera de React (correos, OG)
 ```
 
 - Las clases de color siempre por token (`bg-surface`, `text-ink-muted`, `bg-verified-soft text-verified-ink`). **Prohibido** usar la paleta por defecto de Tailwind (`bg-blue-500`, `text-gray-600`) o hex sueltos en componentes. Una regla de ESLint o un `grep` en la CI lo hace cumplir.
@@ -748,14 +781,213 @@ frontend/src/
 - [ ] Textos con trato de usted, verbos concretos, sin exclamaciones ni palabras de la lista negra.
 - [ ] Nada de la sección 11 (emojis, chispas, glass, blobs, features en cuadrícula, relleno).
 - [ ] Probado en claro y oscuro.
+- [ ] Tamaños de letra de la escala 1,25, alturas de línea múltiplos de 4, radios anidados correctos.
+- [ ] Figuras solo del kit o construidas con los motivos y reglas de la sección 19; animadas una vez y respetando movimiento reducido.
+- [ ] Logo sin modificaciones, con su zona de respeto y en la variante correcta para el fondo.
+- [ ] Ninguna librería fuera de la tabla de la sección 20.
 
 ## 16. Prompt corto para la IA
 
-> Lee `docs/DESIGN.md` y la sección 12 de `docs/nitida-especificacion.md` antes de escribir UI. Usa solo los tokens de la sección 14 y los componentes de `components/nitida` y `components/ui`. Una acción principal por pantalla. Estados con ícono y texto según la sección 2.4. Cada ruta lleva `loading.tsx` con skeleton de geometría real y `error.tsx` con mensajes de la sección 9. Textos en español de Colombia con trato de usted. No agregues nada de la sección 11 ni librerías nuevas. Al terminar, recorre el checklist de la sección 15 y di cuáles puntos no pudiste cumplir.
+> Lee `docs/DESIGN.md` y la sección 12 de `docs/nitida-especificacion.md` antes de escribir UI. Usa solo los tokens de la sección 14 y los componentes de `components/nitida` y `components/ui`. Una acción principal por pantalla. Estados con ícono y texto según la sección 2.4. Cada ruta lleva `loading.tsx` con skeleton de geometría real y `error.tsx` con mensajes de la sección 9. Textos en español de Colombia con trato de usted. Usa la escala tipográfica y las proporciones de la sección 18, el logo de la sección 17 sin modificarlo y, donde la sección 19.3 lo permita, las figuras del kit animadas con Motion según 19.4. No agregues nada de la sección 11 ni librerías fuera de la sección 20. Al terminar, recorre el checklist de la sección 15 y di cuáles puntos no pudiste cumplir.
 
-## 17. Pendientes
+## 17. Marca: logo y símbolo
 
-- Logotipo y símbolo de Nítida: aún no existen. El sello no debe confundirse con el logo.
+Archivos en `frontend/public/brand/` y como componentes en `components/brand/`:
+
+| Archivo | Uso |
+|---|---|
+| `nitida-mark.svg` | Símbolo en baldosa índigo. Ícono de la app (PWA), avatar de redes, favicon grande |
+| `nitida-mark-mono.svg` | Símbolo sin baldosa en `currentColor`. Dentro de la UI, junto a texto, en sellos de agua de PDF |
+| `nitida-lockup.svg` / `nitida-lockup-dark.svg` | Símbolo + nombre. Encabezado de login, hoja pública, landing, recibos |
+| `nitida-wordmark.svg` | Solo el nombre. Pie de página, documentos |
+| `favicon.svg` | Favicon (con PNG de 32, 180 y 512 px generados desde él) |
+
+### 17.1 Concepto
+
+- **El símbolo es una N trazada con una sola línea continua**, de abajo a arriba y de vuelta: el historial de la moto, sin cortes. El último trazo se detiene antes de llegar arriba y, en su lugar, aparece **el punto menta**: el último registro, firmado. Es el mismo punto que corona el sello de verificación.
+- **El nombre "nítida"** va en minúscula, en Inter Display SemiBold, con el tildado de la í en menta. La tilde y el punto del símbolo son el mismo gesto: la marca se reconoce por ese detalle verde, no por un adorno extra.
+- Minúscula y redondeada: cercana, de taller, no corporativa ni de banco.
+
+### 17.2 Construcción
+
+- Retícula de 64 × 64. Baldosa con radio 16 (25 % del lado, la misma proporción que las tarjetas respecto a su contenido). Trazo de 7,5 con terminaciones y uniones redondas. Astas en x = 19,5 y x = 44,5 (márgenes ópticos de 19,5 y 19,5). Punto de radio 5 centrado en (44,5; 19).
+- La línea base del nombre coincide con la base del trazo de la N (y = 45) y la altura de x del nombre mide 27, de modo que el nombre queda ópticamente centrado con la baldosa.
+- **Zona de respeto:** alrededor del símbolo o del conjunto, como mínimo el diámetro del punto × 2 (20 unidades a escala 64). Nada entra en esa zona.
+- **Tamaño mínimo:** símbolo 16 px (favicon); conjunto 96 px de ancho. Por debajo de 96 px se usa solo el símbolo.
+
+### 17.3 Color
+
+| Fondo | Baldosa | N | Punto | Nombre | Tilde |
+|---|---|---|---|---|---|
+| Claro (`canvas`, `surface`) | `primary` | blanco | `verified` de modo oscuro (#78D3B1) | `ink` | `verified` |
+| Oscuro (`canvas` oscuro) | `primary` de modo oscuro | `canvas` oscuro | #78D3B1 | `ink` oscuro | #78D3B1 |
+| Una tinta (sellos, grabado, fax) | sin baldosa | `currentColor` | `currentColor` | `currentColor` | `currentColor` |
+
+### 17.4 Prohibido con el logo
+
+Estirarlo, rotarlo, cambiarle los colores fuera de esta tabla, ponerle sombra, contorno, degradado o brillo, recrear el nombre con otra fuente, mover el punto, separar la tilde, usar el símbolo como patrón de fondo, animarlo en bucle, ponerlo sobre fotos sin una superficie sólida detrás.
+
+### 17.5 Animación del logo (opcional, una vez)
+
+Solo en la pantalla de inicio de sesión y en la landing, una vez por visita: el trazo de la N se dibuja de 0 a 1 (`pathLength`) en 600 ms con `ease-out`, y al final el punto aparece con escala 0 → 1 en 180 ms. Con movimiento reducido, se muestra completo de entrada.
+
+## 18. Proporciones y armonía
+
+Que todo se sienta "bien puesto" no es suerte: sale de pocas reglas que se respetan siempre.
+
+### 18.1 Escala tipográfica modular
+
+Razón **1,25 (tercera mayor)** sobre 16 px. Cada paso es 1,25 veces el anterior, redondeado:
+
+| Paso | Tamaño | Alto de línea | Token | Uso |
+|---|---|---|---|---|
+| −1 | 13 | 20 | `caption`, `mono` | Metadatos, chips, ayudas |
+| 0 | 16 | 24 | `body` | Cuerpo, inputs |
+| 1 | 20 | 28 | `heading`, `subhead` (500) | Títulos de sección, títulos de tarjeta |
+| 2 | 25 | 32 | `title` | Título de pantalla |
+| 3 | 31 | 36 | `display`, `metric` | Cifras destacadas, título de hoja pública |
+| 4 | 39 | 44 | `hero` | Landing en móvil |
+| 5 | 49 | 52 | `hero-xl` | Landing en escritorio |
+
+`body-sm` y `label` (14/20) son el único paso intermedio permitido, para la UI densa del escritorio. Los altos de línea siempre son múltiplos de 4. Tracking negativo creciente con el tamaño (−0,2 px a 20, −0,4 a 25, −0,6 a 31, −1 a 39, −1,4 a 49), como Linear, para que los títulos grandes se vean compactos y precisos.
+
+### 18.2 Espacio
+
+- Retícula de 4 px; los saltos grandes siguen la misma razón aproximada: 8 → 12 → 16 → 24 → 32 → 48 → 64.
+- **Proximidad:** el espacio dentro de un grupo es siempre menor que el espacio entre grupos (al menos el doble). Etiqueta–campo 8, campo–campo 16, sección–sección 32 (48 en escritorio).
+- Una pantalla de móvil tiene márgenes laterales de 16 px; en escritorio, el contenido respira con 32 px.
+
+### 18.3 Radios anidados
+
+Radio interior = radio exterior − padding. Una tarjeta de radio 14 con padding 8 contiene elementos de radio 6. Así los bordes curvos quedan concéntricos y nada se ve "pegado". La IA calcula el radio, no lo adivina.
+
+### 18.4 Íconos y texto
+
+El ícono mide lo mismo que el alto de línea del texto que acompaña menos 4 a 6 px (16 con texto de 20 de línea, 20 con 24–28) y se centra ópticamente, no por caja. El trazo de los íconos (1,75) se acerca al grosor de Inter en 500 a 16 px, para que ícono y letra pesen igual.
+
+### 18.5 Proporciones de layout
+
+- Barra lateral 240 px y contenido hasta 1200 px: 1 : 5.
+- Detalle con panel lateral (orden + historial): 2 : 1 (dos tercios y un tercio).
+- Tarjetas de métrica: siempre en 2 o 4 columnas, nunca 3 junto a 2.
+- Ilustraciones de estado vacío a 96 px, el doble del círculo del ícono (48), cuatro veces el ícono (24).
+- Hero de la landing: ilustración y texto en 1 : 1 en escritorio; la ilustración baja debajo del texto en móvil, nunca encima.
+
+### 18.6 Armonía de color
+
+- Toda la paleta comparte el mismo espacio OKLCH: los acentos tienen croma entre 0,10 y 0,15 y luminosidad de 0,50–0,56 (claro) o 0,72–0,80 (oscuro), así que ninguno "grita" más que otro.
+- Los neutros llevan el tono de la marca: los claros tiran a cálido (85°), los oscuros al índigo (268°). Nunca grises puros.
+- En cada pantalla: neutros ≥ 70 %, un acento dominante, los otros dos solo como estado. Las ilustraciones siguen la misma regla: neutros + índigo + un punto de menta.
+
+### 18.7 Ajustes ópticos
+
+Círculos y triángulos se hacen 2–4 % más grandes que los cuadrados para que se vean del mismo tamaño. El texto dentro de botones se sube 0,5 px si la fuente lo deja bajo. Los números de las métricas usan `tabular-nums` y se alinean por la derecha. Lo que la vista percibe manda sobre lo que mide la regla.
+
+## 19. Figuras e ilustración
+
+Nítida se siente viva por un **lenguaje de figuras propio**, no por adornos genéricos. Todo se construye con cuatro motivos que salen del producto:
+
+| Motivo | Qué representa | Forma |
+|---|---|---|
+| **Registro** | Un servicio en el historial | Tarjeta de radio 14 con un punto índigo y barras de texto abstractas |
+| **Eslabón** | La cadena de firmas que une los registros | Dos píldoras entrelazadas de trazo 2,25 en `primary` |
+| **Arco de tacómetro** | La moto, el kilometraje, el avance | Arco de 116° con marcas cada 6,4°, una de cada tres más larga; las últimas en `primary` |
+| **Sello** | La verificación | Círculo `verified` con chulo blanco, anillo exterior al 28 % |
+
+### 19.1 Kit incluido (`frontend/public/illustrations/` y `components/illustrations/`)
+
+| Archivo | Dónde |
+|---|---|
+| `chain-hero.svg` (480 × 220) | Landing, login, cabecera de la hoja pública, onboarding |
+| `empty-orders.svg` | Estado vacío de órdenes |
+| `empty-history.svg` | Moto sin historial |
+| `empty-alerts.svg` | Sin alertas (tacómetro en verde) |
+| `scan.svg` | Escáner sin permiso de cámara, ayuda de escaneo |
+| `not-found.svg` | 404 (eslabón roto) |
+| `offline.svg` | Sin conexión (tacómetro en cero) |
+| `seal-valid.svg`, `seal-invalid.svg`, `seal-unverifiable.svg` | Sello en sus tres estados |
+
+Todos usan `var(--token, #respaldo)` en `fill` y `stroke`, así que cambian solos con el modo oscuro cuando van en línea (como componente React). Cada uno trae `<title>` para lectores de pantalla.
+
+### 19.2 Reglas de construcción
+
+- Solo formas geométricas: rectángulos con los radios del sistema (4, 6, 10, 14, 20), círculos, arcos y líneas. Nada dibujado a mano alzada, nada figurativo de personas.
+- Grosores de trazo: 1,25 / 1,5 (detalle), 2,25 (eslabón), 3–5 (elementos principales de los íconos de 96 px). Siempre terminaciones redondas.
+- Colores: solo tokens. Base en `surface`, `surface-sunken`, `border`, `border-strong` e `ink-muted`; acento en `primary` y `primary-soft`; **un único** toque de `verified`, `attention` o `danger` cuando cuenta algo (el sello, la alerta, el error).
+- Texto dentro de las figuras: nunca. El texto real va en HTML al lado, para que se traduzca, se lea y escale.
+- Peso: cada SVG pasa por SVGO y pesa menos de 8 KB. Sin imágenes incrustadas, sin filtros (`blur`, `drop-shadow`), sin degradados.
+
+### 19.3 Dónde sí y dónde no
+
+| Sí | No |
+|---|---|
+| Landing, login, registro, onboarding | Tablero de trabajo diario |
+| Estados vacíos, 404, sin conexión | Listas, tablas, formularios con datos |
+| Hoja pública `/v/[token]` y su imagen para WhatsApp (Open Graph) | Dentro de diálogos de confirmación |
+| Momento de entrega (sello) | Como fondo detrás de contenido |
+
+En las pantallas de trabajo la vida la dan las microinteracciones (sección 20.2), no las figuras.
+
+### 19.4 Movimiento de las figuras
+
+Recetas con **Motion** (`motion/react`), siempre una sola vez al entrar en pantalla (`whileInView`, `once: true`):
+
+| Figura | Animación | Duración |
+|---|---|---|
+| Arco de tacómetro | Las marcas aparecen en orden (opacidad 0 → 1, 20 ms entre cada una); las índigo al final | 600 ms total |
+| Registros | Suben 8 px y aparecen, uno tras otro (`staggerChildren: 0.08`) | 260 ms cada uno |
+| Eslabones | Se dibujan (`pathLength` 0 → 1) después de su registro | 240 ms |
+| Sello | Escala 0,92 → 1 y opacidad, luego el chulo se dibuja con `pathLength` | 260 + 220 ms |
+| Escáner | La línea de escaneo sube y baja | 1,6 s en bucle, solo mientras la cámara está abierta |
+| Estado vacío | Aparición suave (opacidad + 4 px) | 180 ms |
+
+Con `prefers-reduced-motion` (o `MotionConfig reducedMotion="user"`), todo aparece ya completo, sin desplazamiento ni dibujo.
+
+### 19.5 Imagen para compartir (Open Graph)
+
+La hoja pública genera su imagen de 1200 × 630 con `next/og`: fondo `canvas`, el conjunto de marca arriba a la izquierda, a la derecha el sello grande en su estado real, y el texto "FZ 150 · Historial verificado · 4 servicios" en `title`. Nunca placa completa ni datos del dueño en la imagen. Si el historial es inválido o no verificable, la imagen lo dice igual de claro.
+
+## 20. Librerías de UI y animación
+
+| Librería | Para qué | Notas |
+|---|---|---|
+| **tailwindcss v4** | Estilos con los tokens de la sección 14 | — |
+| **shadcn/ui** (Radix) | Componentes base copiados al repo | Se adaptan a los tokens; no se instala un tema externo |
+| **motion** (`motion/react`, antes Framer Motion) | Microinteracciones, entradas, dibujo de SVG con `pathLength`, transiciones de layout | Librería principal de animación de la app. MIT |
+| **lucide-react** | Íconos | Importar ícono por ícono (tree-shaking) |
+| **sonner** | Toasts | El que usa shadcn; se estiliza con los tokens |
+| **cmdk** | Paleta de comandos (Ctrl/Cmd + K) para el dueño en escritorio | Buscar placa, orden o moto; patrón de Linear |
+| **next-themes** | Modo claro/oscuro | Por defecto `system`, primera vez claro |
+| **@svgr/webpack** + **svgo** | Importar los SVG de marca e ilustraciones como componentes React optimizados | Configurar en `next.config` |
+| **gsap** (opcional, solo landing) | Narrativa con scroll (`ScrollTrigger`) o morph de formas (`MorphSVG`) si Motion no alcanza | Hoy es gratis incluso para uso comercial, con todos sus plugins, bajo su licencia propia (no es open source); no se usa en la app, solo en la landing, y requiere ADR |
+| **@rive-app/react-canvas** (opcional, fase 2) | Sello y logo interactivos hechos en el editor de Rive | Runtimes MIT; necesita WebAssembly, así que la CSP debe permitir `'wasm-unsafe-eval'`; requiere ADR |
+
+No se usan: Lottie (archivos pesados y difíciles de tematizar), librerías de partículas o confeti, `vaul` (su repositorio está marcado como sin mantenimiento; los bottom sheets se hacen con el `Sheet` de shadcn + Motion), ni librerías de componentes completas adicionales (MUI, Chakra, Ant).
+
+### 20.1 Reglas de animación con Motion
+
+- Envolver la app en `<MotionConfig reducedMotion="user">`.
+- Animar solo `transform` y `opacity` (y `pathLength` en SVG). Nunca `width`, `height`, `top` o `box-shadow` en bucle.
+- Duraciones y curvas de la sección 13; los resortes, si se usan, con `bounce` ≤ 0,15.
+- Las animaciones de entrada nunca retrasan la interacción: el botón funciona desde el primer frame.
+
+### 20.2 Microinteracciones que dan vida (en la app)
+
+| Momento | Qué pasa |
+|---|---|
+| Cambiar estado de una orden | El chip cruza con un fundido de 120 ms y la fila hace un leve resalte `primary-soft` que se desvanece en 600 ms |
+| Registrar un pago | El monto pendiente baja con conteo animado (300 ms, `tabular-nums`) |
+| Escanear un repuesto | Vibración, marco en menta 200 ms y la fila nueva entra desde abajo 8 px |
+| Entregar la moto | El sello se estampa (sección 19.4) y el nuevo registro aparece al final de la línea de tiempo con su eslabón dibujándose |
+| Cuadre de caja que cuadra | El ícono de balanza se nivela (rotación de 6° a 0°) |
+| Arrastrar orden en el kanban (escritorio) | La tarjeta se levanta con sombra `raised` y escala 1,02 |
+
+Una microinteracción por acción. Si dos cosas se animan a la vez por el mismo clic, sobra una.
+
+## 21. Pendientes
+
+- Logo: validar que el símbolo se lea bien impreso en recibos térmicos (una tinta) y bordado/estampado en dotación del taller. Registrar la marca en la SIC antes de invertir en piezas físicas.
+- Ilustraciones: si se contrata a un ilustrador para la landing, debe seguir la sección 19 (motivos y reglas), no traer un estilo nuevo.
 - Validar con 2 o 3 talleres de Pasto: legibilidad bajo sol, trato de usted o tú y tamaño de botones con guantes.
 - Agregar `SERIAL_ALREADY_ACTIVE` y `RATE_LIMITED` a la especificación (sección 9 de la API) si no están.
 - Revisar la licencia de Inter y JetBrains Mono (ambas OFL al momento de escribir esto) antes de publicar.

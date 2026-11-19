@@ -208,4 +208,27 @@ class CashdeskIntegrationTest extends OrderFlowTest {
         get("/api/v1/cashdesk/alerts?status=RESOLVED", s.owner(), s.ws()).andExpect(jsonPath("$.length()").value(1)).andExpect(jsonPath("$[0].comment").exists());
         assertThat(jdbc.sql("SELECT count(*) FROM cashdesk.leak_alert WHERE id = ?").param(UUID.fromString(alertId)).query(Long.class).single()).isEqualTo(1L);
     }
+
+    @Test
+    void alertsPageByCursorWithoutGapsOrRepeats() throws Exception {
+        var s = newShop();
+        for (int i = 0; i < 3; i++) {
+            var stalled = openOrder(s, 100);
+            jdbc.sql("UPDATE orders.work_order SET updated_at = ? WHERE id = ?").params(Timestamp.from(Instant.now().minus(Duration.ofDays(8))), stalled.orderId()).update();
+        }
+        scheduled.execute();
+        var ids = new java.util.ArrayList<String>();
+        String cursor = null;
+        int pages = 0;
+        do {
+            var res = get("/api/v1/cashdesk/alerts?status=PENDING&limit=2" + (cursor == null ? "" : "&cursor=" + cursor), s.owner(), s.ws())
+                    .andExpect(status().isOk()).andReturn().getResponse();
+            co.nitida.shared.Json.mapper().readTree(res.getContentAsString()).forEach(n -> ids.add(n.get("id").asString()));
+            cursor = res.getHeader("X-Next-Cursor");
+            pages++;
+        } while (cursor != null && pages < 5);
+        assertThat(pages).isEqualTo(2);
+        assertThat(ids).hasSize(3).doesNotHaveDuplicates();
+        get("/api/v1/cashdesk/alerts?limit=0", s.owner(), s.ws()).andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.code").value("INVALID_LIMIT"));
+    }
 }

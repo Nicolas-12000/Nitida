@@ -6,6 +6,7 @@ import co.nitida.cashdesk.application.ListLeakAlertsUseCase;
 import co.nitida.cashdesk.application.ReopenCashCountUseCase;
 import co.nitida.cashdesk.application.ResolveLeakAlertUseCase;
 import co.nitida.shared.ApiException;
+import co.nitida.shared.Page;
 import co.nitida.shared.WorkshopContext;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
@@ -55,7 +56,10 @@ class CashdeskHandler {
 
     ServerResponse alerts(ServerRequest req) {
         var filter = ListLeakAlertsUseCase.Filter.valueOf(req.param("status").orElse("PENDING"));
-        return ServerResponse.ok().body(list.execute(WorkshopContext.current(), filter));
+        var page = list.execute(WorkshopContext.current(), filter, Page.limit(req.param("limit").orElse(null)), Page.position(req.param("cursor").orElse(null)));
+        var ok = ServerResponse.ok();
+        if (page.nextCursor() != null) ok.header(Page.HEADER, page.nextCursor());
+        return ok.body(page.items());
     }
 
     ServerResponse resolve(ServerRequest req) throws Exception {

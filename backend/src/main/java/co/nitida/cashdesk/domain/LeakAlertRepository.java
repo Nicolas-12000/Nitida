@@ -1,5 +1,6 @@
 package co.nitida.cashdesk.domain;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -18,7 +19,19 @@ public interface LeakAlertRepository extends JpaRepository<LeakAlert, UUID> {
 
     Optional<LeakAlert> findByIdAndWorkshopId(UUID id, UUID workshopId);
 
-    List<LeakAlert> findByWorkshopIdAndResolvedAtIsNullOrderByCreatedAtDesc(UUID workshopId, Pageable page);
+    @Query("""
+            select a from LeakAlert a
+            where a.workshopId = :workshopId
+              and ((:resolved = true and a.resolvedAt is not null) or (:resolved = false and a.resolvedAt is null))
+            order by a.createdAt desc, a.id desc""")
+    List<LeakAlert> firstPage(@Param("workshopId") UUID workshopId, @Param("resolved") boolean resolved, Pageable page);
 
-    List<LeakAlert> findByWorkshopIdAndResolvedAtIsNotNullOrderByCreatedAtDesc(UUID workshopId, Pageable page);
+    @Query("""
+            select a from LeakAlert a
+            where a.workshopId = :workshopId
+              and ((:resolved = true and a.resolvedAt is not null) or (:resolved = false and a.resolvedAt is null))
+              and (a.createdAt < :at or (a.createdAt = :at and a.id < :id))
+            order by a.createdAt desc, a.id desc""")
+    List<LeakAlert> pageAfter(@Param("workshopId") UUID workshopId, @Param("resolved") boolean resolved,
+                              @Param("at") Instant at, @Param("id") UUID id, Pageable page);
 }

@@ -21,7 +21,15 @@ public interface WorkOrderRepository extends JpaRepository<WorkOrder, UUID> {
     @Query("select o from WorkOrder o where o.id = :id and o.workshopId = :workshopId")
     Optional<WorkOrder> lockByIdAndWorkshopId(@Param("id") UUID id, @Param("workshopId") UUID workshopId);
 
-    List<WorkOrder> findByWorkshopIdAndStatusInOrderByCreatedAtDesc(UUID workshopId, Collection<OrderStatus> statuses, Pageable page);
+    List<WorkOrder> findByWorkshopIdAndStatusInOrderByCreatedAtDescIdDesc(UUID workshopId, Collection<OrderStatus> statuses, Pageable page);
+
+    @Query("""
+            select o from WorkOrder o
+            where o.workshopId = :workshopId and o.status in :statuses
+              and (o.createdAt < :at or (o.createdAt = :at and o.id < :id))
+            order by o.createdAt desc, o.id desc""")
+    List<WorkOrder> pageAfter(@Param("workshopId") UUID workshopId, @Param("statuses") Collection<OrderStatus> statuses,
+                              @Param("at") Instant at, @Param("id") UUID id, Pageable page);
 
     List<WorkOrder> findByStatusInAndUpdatedAtBefore(Collection<OrderStatus> statuses, Instant cutoff);
 

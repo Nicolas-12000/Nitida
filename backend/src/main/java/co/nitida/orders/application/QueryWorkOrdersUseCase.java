@@ -4,7 +4,9 @@ import co.nitida.orders.OrderStatus;
 import co.nitida.orders.application.OrderViews.OrderSummary;
 import co.nitida.orders.application.OrderViews.OrderView;
 import co.nitida.orders.domain.PaymentRepository;
+import co.nitida.orders.domain.WorkOrder;
 import co.nitida.orders.domain.WorkOrderRepository;
+import co.nitida.shared.Page;
 import co.nitida.shared.Role;
 import co.nitida.shared.WorkshopContext;
 import java.util.EnumSet;
@@ -18,8 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 /** Read side for the dashboard (kanban by status) and the order screen. */
 @Service
 public class QueryWorkOrdersUseCase {
-    private static final int PAGE = 50;
-
     private final OrderAccess access;
     private final WorkOrderRepository orders;
     private final PaymentRepository payments;
@@ -38,10 +38,13 @@ public class QueryWorkOrdersUseCase {
     }
 
     @Transactional(readOnly = true)
-    public List<OrderSummary> list(WorkshopContext ctx, Set<OrderStatus> statuses) {
+    public Page<OrderSummary> list(WorkshopContext ctx, Set<OrderStatus> statuses, int limit, Page.Position after) {
         Set<OrderStatus> wanted = statuses.isEmpty() ? EnumSet.of(OrderStatus.OPEN, OrderStatus.IN_PROGRESS, OrderStatus.COMPLETED) : statuses;
-        return orders.findByWorkshopIdAndStatusInOrderByCreatedAtDesc(ctx.workshopId(), wanted, PageRequest.of(0, PAGE)).stream()
-                .map(o -> new OrderSummary(o.getId(), o.getMotorcycleId(), o.getStatus(), o.getDiagnosis(), o.total().value(), o.getUpdatedAt()))
-                .toList();
+        var size = PageRequest.of(0, limit + 1);
+        var rows = after == null
+                ? orders.findByWorkshopIdAndStatusInOrderByCreatedAtDescIdDesc(ctx.workshopId(), wanted, size)
+                : orders.pageAfter(ctx.workshopId(), wanted, after.at(), after.id(), size);
+        return Page.of(rows, limit, WorkOrder::getCreatedAt, WorkOrder::getId,
+                o -> new OrderSummary(o.getId(), o.getMotorcycleId(), o.getStatus(), o.getDiagnosis(), o.total().value(), o.getUpdatedAt()));
     }
 }

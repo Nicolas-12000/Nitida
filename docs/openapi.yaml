@@ -1051,13 +1051,18 @@ paths:
         - name: status
           in: query
           schema: { type: string }
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
       security:
         - sessionCookie: []
           csrfToken: []
         - workshopId: []
       responses:
         '200':
-          description: OK
+          description: OK (un arreglo). Si hay más, el encabezado `X-Next-Cursor` trae el cursor de la página siguiente
+          headers:
+            X-Next-Cursor:
+              $ref: '#/components/headers/NextCursor'
 
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -2246,13 +2251,18 @@ paths:
         - name: status
           in: query
           schema: { type: string, enum: [PENDING, RESOLVED] }
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
       security:
         - sessionCookie: []
           csrfToken: []
         - workshopId: []
       responses:
         '200':
-          description: OK
+          description: OK (un arreglo). Si hay más, el encabezado `X-Next-Cursor` trae el cursor de la página siguiente
+          headers:
+            X-Next-Cursor:
+              $ref: '#/components/headers/NextCursor'
 
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -2871,6 +2881,25 @@ components:
       properties:
         code: { type: string }
         expiresAt: { type: string, format: date-time }
+
+  parameters:
+    Limit:
+      name: limit
+      in: query
+      description: Tamaño de página, de 1 a 100 (50 por defecto). Otro valor → `422 INVALID_LIMIT`.
+      schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+    Cursor:
+      name: cursor
+      in: query
+      description: |
+        Cursor opaco que devolvió la página anterior en `X-Next-Cursor`. Sin cursor, primera página.
+        Un cursor mal formado → `400 INVALID_CURSOR`. No se interpreta ni se reutiliza entre talleres.
+      schema: { type: string }
+
+  headers:
+    NextCursor:
+      description: Cursor de la página siguiente; ausente en la última página
+      schema: { type: string }
 
   responses:
     BadRequest:

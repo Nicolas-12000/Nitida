@@ -3,6 +3,7 @@ package co.nitida.cashdesk.application;
 import co.nitida.cashdesk.domain.AlertType;
 import co.nitida.cashdesk.domain.LeakAlert;
 import co.nitida.cashdesk.domain.LeakAlertRepository;
+import co.nitida.shared.Page;
 import co.nitida.shared.Role;
 import co.nitida.shared.WorkshopContext;
 import java.time.Instant;
@@ -20,9 +21,6 @@ public class ListLeakAlertsUseCase {
     public record AlertView(UUID id, AlertType type, UUID referenceId, String details, Instant createdAt,
                             Instant resolvedAt, String comment) {}
 
-    // shortcut: fixed page of the newest 200, upgrade to cursor pagination (spec §9) when a workshop gets near it
-    private static final PageRequest PAGE = PageRequest.of(0, 200);
-
     private final LeakAlertRepository alerts;
 
     ListLeakAlertsUseCase(LeakAlertRepository alerts) {
@@ -30,12 +28,13 @@ public class ListLeakAlertsUseCase {
     }
 
     @Transactional(readOnly = true)
-    public List<AlertView> execute(WorkshopContext ctx, Filter filter) {
+    public Page<AlertView> execute(WorkshopContext ctx, Filter filter, int limit, Page.Position after) {
         ctx.require(Role.WORKSHOP_OWNER);
-        var rows = filter == Filter.RESOLVED
-                ? alerts.findByWorkshopIdAndResolvedAtIsNotNullOrderByCreatedAtDesc(ctx.workshopId(), PAGE)
-                : alerts.findByWorkshopIdAndResolvedAtIsNullOrderByCreatedAtDesc(ctx.workshopId(), PAGE);
-        return rows.stream().map(ListLeakAlertsUseCase::view).toList();
+        boolean resolved = filter == Filter.RESOLVED;
+        var size = PageRequest.of(0, limit + 1);
+        var rows = after == null ? alerts.firstPage(ctx.workshopId(), resolved, size)
+                : alerts.pageAfter(ctx.workshopId(), resolved, after.at(), after.id(), size);
+        return Page.of(rows, limit, LeakAlert::getCreatedAt, LeakAlert::getId, ListLeakAlertsUseCase::view);
     }
 
     private static AlertView view(LeakAlert a) {

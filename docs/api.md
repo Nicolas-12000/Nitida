@@ -20,7 +20,7 @@ Fuente de verdad en prosa: este archivo. El contrato máquina es **`docs/openapi
 | Kilometraje | Entero entre 0 y 999.999. |
 | Fechas | Instantes en ISO 8601 UTC (`2026-11-19T15:00:00Z`). Los días de caja son `AAAA-MM-DD` en `America/Bogota`. El frontend formatea con `Intl` `es-CO`. |
 | Códigos secretos | `claimCode`, `token` de invitación, de link y de traspaso se devuelven **una sola vez**; el backend guarda solo su hash. Mostrarlos y no volver a pedirlos. |
-| Listados | Hoy devuelven los más recientes (máx. 200, clientes 20) sin cursor. Si el frontend necesita más, se agrega paginación por cursor (spec §9). |
+| Listados | `GET /orders` y `GET /cashdesk/alerts` paginan por cursor: `?limit=` (1–100, 50 por defecto) y `?cursor=`; la respuesta sigue siendo un arreglo y, si hay más, el encabezado `X-Next-Cursor` trae el cursor de la siguiente página (opaco: no se arma ni se reutiliza). Más recientes primero. Los demás listados devuelven todo lo abierto (recepciones) o un máximo fijo (clientes 20). |
 
 ## Endpoints
 
@@ -66,7 +66,7 @@ Columnas: **Ctx** `T` = lleva `X-Workshop-Id` · **Roles** quién puede.
 | Ruta | Ctx | Roles | Cuerpo | Respuesta |
 |---|---|---|---|---|
 | `POST /api/v1/orders` | T | O M | `{intakeId, customerId?, diagnosis (10–2000), mechanicId?, warrantyOfOrderId?}` | `201` `{orderId, motorcycleId, mileage}` |
-| `GET /api/v1/orders` | T | O M R | `?status=OPEN,IN_PROGRESS,…` | tablero de órdenes |
+| `GET /api/v1/orders` | T | O M R | `?status=OPEN,IN_PROGRESS,…&limit=1..100&cursor=` | tablero de órdenes |
 | `GET /api/v1/orders/{id}` | T | O M R | — | detalle (trabajos, repuestos, pagos, `total`, `version`) |
 | `PATCH /api/v1/orders/{id}` | T | O M | `{version, diagnosis?, laborCost?, warrantyDays?, warrantyKm?, jobs:[{type: OIL_CHANGE\|DRIVE_CHAIN_KIT\|BRAKES\|SUSPENSION\|ELECTRICAL\|ENGINE\|TIRES\|TUNE_UP\|OTHER, description}]}` | `204`; `409 VERSION_CONFLICT`, `409 ORDER_NOT_EDITABLE` |
 | `POST /api/v1/orders/{id}/transitions` | T | O M | `{status, reason?, version}` (`OPEN→IN_PROGRESS→COMPLETED`; `CANCELLED` pide `reason`) | `{status}`; `422 INVALID_TRANSITION` |
@@ -107,7 +107,7 @@ Columnas: **Ctx** `T` = lleva `X-Workshop-Id` · **Roles** quién puede.
 | `GET /api/v1/cashdesk/counts/{day}` | T | O | — | `{day, expected, counted, difference, status: OPEN\|BALANCED\|UNBALANCED, closedAt, reopenReason}`; `expected` = efectivo no anulado del día |
 | `POST /api/v1/cashdesk/counts/{day}/close` | T | O | `{counted}` | cuadre cerrado; `409 CASH_COUNT_CLOSED`, `422 FUTURE_DAY`; si hay desfase genera alerta F3 |
 | `POST /api/v1/cashdesk/counts/{day}/reopen` | T | O | `{reason (10–500)}` | cuadre abierto; queda auditado |
-| `GET /api/v1/cashdesk/alerts` | T | O | `?status=PENDING\|RESOLVED` | `[{id, type, referenceId, details, createdAt, resolvedAt, comment}]` con `type` F1…F6 |
+| `GET /api/v1/cashdesk/alerts` | T | O | `?status=PENDING\|RESOLVED&limit=1..100&cursor=` | `[{id, type, referenceId, details, createdAt, resolvedAt, comment}]` con `type` F1…F6 |
 | `POST /api/v1/cashdesk/alerts/{id}/resolve` | T | O | `{comment (5–500)}` | `204`; `409 ALERT_ALREADY_RESOLVED`. Las alertas no se borran |
 
 ### Portal del propietario (cualquier persona con sesión, sin taller)
@@ -131,6 +131,7 @@ Columnas: **Ctx** `T` = lleva `X-Workshop-Id` · **Roles** quién puede.
 | `VERSION_CONFLICT` | 409 | Alguien modificó el recurso: releer y reintentar |
 | `INTERNAL_ERROR` | 500 | Error inesperado; se muestra `traceId` para soporte |
 | `RATE_LIMITED` | 429 | Demasiados intentos |
+| `INVALID_LIMIT` · `INVALID_CURSOR` | 422 / 400 | Paginación: `limit` fuera de 1–100, o cursor mal formado (pedir la primera página) |
 | `WORKSHOP_REQUIRED` / `INVALID_WORKSHOP_ID` | 400 | Falta o es inválido `X-Workshop-Id` |
 | `WORKSHOP_SUSPENDED` | 423 | El taller suspendido no crea registros nuevos |
 | `WEAK_PASSWORD` · `INVALID_EMAIL` · `EMAIL_TAKEN` · `INVALID_CREDENTIALS` | 422 / 409 / 401 | Registro e inicio de sesión |

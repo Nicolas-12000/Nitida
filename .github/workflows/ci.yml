@@ -261,7 +261,17 @@ jobs:
         id: stack
         run: |
           docker compose up -d postgres backend
-          curl --fail --silent --retry 40 --retry-delay 3 --retry-connrefused http://localhost:8080/actuator/health
+          # docker-proxy accepts :8080 as soon as the container starts, then resets the
+          # connection until the JVM listens. That is curl exit 56, and --retry-connrefused
+          # only retries exit 7, so the probe has to loop on its own.
+          for _ in $(seq 1 40); do
+            if curl --fail --silent --show-error http://127.0.0.1:8080/actuator/health; then
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "backend did not become healthy on :8080" >&2
+          exit 1
       - name: OWASP ZAP passive scan of the API
         # One request per OpenAPI operation, then the passive rules. No active attack:
         # that pass is several minutes and, without a session, mostly pokes 401s.
