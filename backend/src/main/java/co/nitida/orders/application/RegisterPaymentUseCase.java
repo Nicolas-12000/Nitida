@@ -37,7 +37,7 @@ public class RegisterPaymentUseCase {
     public UUID execute(Command c) {
         c.ctx().require(Role.WORKSHOP_OWNER, Role.FRONT_DESK);
         workshops.requireActive(c.ctx().workshopId());
-        var order = access.load(c.orderId(), c.ctx());
+        var order = access.loadLocked(c.orderId(), c.ctx()); // two desks paying at once must not both pass the total check
         var existing = payments.findByWorkOrderIdOrderByRecordedAtAsc(order.getId());
         long alreadyPaid = existing.stream().filter(p -> !p.isVoided()).mapToLong(Payment::getAmount).sum();
         var now = clock.instant();

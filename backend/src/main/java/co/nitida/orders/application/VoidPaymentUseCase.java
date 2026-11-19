@@ -32,7 +32,7 @@ public class VoidPaymentUseCase {
     public void execute(Command c) {
         c.ctx().require(Role.WORKSHOP_OWNER, Role.FRONT_DESK);
         var payment = payments.findByIdAndWorkshopId(c.paymentId(), c.ctx().workshopId()).orElseThrow(ApiException::notFound);
-        var order = access.load(payment.getWorkOrderId(), c.ctx());
+        var order = access.loadLocked(payment.getWorkOrderId(), c.ctx());
         if (order.getStatus() == OrderStatus.DELIVERED) {
             throw ApiException.conflict("ORDER_NOT_EDITABLE", "La orden ya fue entregada: sus pagos no se pueden anular");
         }

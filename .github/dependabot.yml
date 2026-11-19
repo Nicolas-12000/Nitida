@@ -1,15 +1,22 @@
 version: 2
+# Minor and patch updates arrive as one PR per ecosystem instead of one per library.
 updates:
   - package-ecosystem: gradle
     directory: /backend
     schedule: { interval: weekly }
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 3
+    groups:
+      gradle-minor-patch: { update-types: [minor, patch] }
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
+    groups:
+      actions-minor-patch: { update-types: [minor, patch] }
   - package-ecosystem: docker
     directory: /backend
     schedule: { interval: weekly }
   - package-ecosystem: npm
     directory: /frontend
     schedule: { interval: weekly }
+    groups:
+      npm-minor-patch: { update-types: [minor, patch] }

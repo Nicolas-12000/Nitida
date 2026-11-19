@@ -19,4 +19,9 @@ class OrderAccess {
     WorkOrder load(UUID orderId, WorkshopContext ctx) {
         return orders.findByIdAndWorkshopId(orderId, ctx.workshopId()).orElseThrow(ApiException::notFound);
     }
+
+    /** For use cases that check the payments and then write one: concurrent callers wait for each other. */
+    WorkOrder loadLocked(UUID orderId, WorkshopContext ctx) {
+        return orders.lockByIdAndWorkshopId(orderId, ctx.workshopId()).orElseThrow(ApiException::notFound);
+    }
 }

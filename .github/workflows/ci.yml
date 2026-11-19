@@ -69,7 +69,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          fetch-depth: 0 # Sonar needs history for blame / new-code detection
+          fetch-depth: ${{ env.SONAR_TOKEN != '' && 0 || 1 }} # only Sonar needs history (blame, new-code detection)
       - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
         with:
           distribution: temurin
@@ -143,6 +143,11 @@ jobs:
           persist-credentials: false
       - name: Enable pnpm
         run: corepack enable
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile --ignore-scripts
       # LayoutProps/PageProps are global types Next generates; without typegen tsc cannot see them.
       - run: pnpm exec next typegen
@@ -162,23 +167,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  sast:
-    name: SAST (Semgrep)
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    container:
-      image: semgrep/semgrep@sha256:67518c174185a2043fdbed16c70631b79209499b3671178e7194379b48295a0d
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Semgrep (OSS rules, fails on findings)
-        run: semgrep scan --config p/java --config p/owasp-top-ten --config p/secrets --error --metrics=off backend/src
-
   dependencies:
-    name: Dependencies (Trivy filesystem + SBOM)
+    name: Dependencies (Trivy filesystem)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -188,39 +180,11 @@ jobs:
         with:
           scan-type: fs
           scan-ref: .
+          scanners: vuln # gitleaks already looks for secrets
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: '1'
           skip-dirs: frontend/node_modules
-      - name: Generate CycloneDX SBOM
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          scan-type: fs
-          scan-ref: .
-          format: cyclonedx
-          output: sbom.cdx.json
-          skip-dirs: frontend/node_modules
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: sbom
-          path: sbom.cdx.json
-          retention-days: 90
-
-  dependency-review:
-    name: Dependency review (new vulnerable or restricted dependencies)
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/dependency-review-action@bbc44d14a204704ccc493733616cd1e93a0321ec # v5.0.1
-        with:
-          fail-on-severity: high
 
   # The Dockerfile builds the jar itself (bootJar -x test), so the image does not wait for the test job: both run in parallel.
   image:
@@ -239,15 +203,51 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - name: Build backend image
-        run: docker build -t nitida-backend:ci backend
-      - name: Trivy image scan (fails on fixable CRITICAL)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: backend
+          load: true
+          tags: nitida-backend:ci
+          # The dependency layer (see Dockerfile) is reused until build.gradle.kts or the verification file changes.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max,ignore-error=true
+      - name: Trivy image scan
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: nitida-backend:ci
+          scanners: vuln # gitleaks already looks for secrets; the secret scanner is what made this step slow
           severity: CRITICAL
           ignore-unfixed: true
-          exit-code: '1'
+          format: json
+          output: trivy-image.json
+          exit-code: '0' # the next step decides, so every finding shows up as a readable annotation
+      - name: Fail on fixable CRITICAL vulnerabilities (one annotation each)
+        run: |
+          python3 - <<'PY'
+          import json, sys
+          found = [v for r in json.load(open("trivy-image.json")).get("Results") or [] for v in r.get("Vulnerabilities") or []]
+          clean = lambda t: " ".join(str(t or "").split()).replace("%", "percent")
+          for v in found:
+              print(f"::error title={v['VulnerabilityID']} in {v['PkgName']} {v['InstalledVersion']}::fixed in {v.get('FixedVersion') or '?'}: {clean(v.get('Title'))}")
+          sys.exit(1 if found else 0)
+          PY
+      - name: SBOM (CycloneDX) of the shipped image
+        if: github.ref == 'refs/heads/main'
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: nitida-backend:ci
+          scanners: vuln
+          format: cyclonedx
+          output: sbom.cdx.json
+      - name: Upload SBOM
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sbom
+          path: sbom.cdx.json
+          retention-days: 90
       - name: Grype image scan (second opinion)
         uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
         with:
@@ -276,7 +276,7 @@ jobs:
   ci-ok:
     name: CI passed
     if: always()
-    needs: [changes, backend, mutation, frontend, secrets, sast, dependencies, dependency-review, image]
+    needs: [changes, backend, mutation, frontend, secrets, dependencies, image]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:

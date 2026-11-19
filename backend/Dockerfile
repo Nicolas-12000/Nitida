@@ -4,6 +4,8 @@ FROM eclipse-temurin:21-jdk@sha256:db5cc6341a1d7bc40cdb51e1f0d9824f3bb2cc8107d29
 WORKDIR /workspace
 COPY gradlew settings.gradle.kts build.gradle.kts ./
 COPY gradle gradle
+# Separate layer: dependencies are downloaded (and verified) only when the build files change, not on every code edit.
+RUN ./gradlew dependencies --no-daemon > /dev/null
 COPY src src
 RUN ./gradlew bootJar -x test --no-daemon \
  && mkdir -p /data/files

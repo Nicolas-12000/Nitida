@@ -50,7 +50,7 @@ public class DeliverOrderUseCase {
     public Result execute(Command c) {
         c.ctx().require(Role.WORKSHOP_OWNER, Role.FRONT_DESK);
         workshops.requireActive(c.ctx().workshopId());
-        var order = access.load(c.orderId(), c.ctx());
+        var order = access.loadLocked(c.orderId(), c.ctx()); // delivery sums the payments: a late one must not slip in
         order.checkVersion(c.version());
         var now = clock.instant();
         order.deliver(payments.findByWorkOrderIdOrderByRecordedAtAsc(order.getId()), now);

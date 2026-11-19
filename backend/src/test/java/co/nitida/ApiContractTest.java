@@ -84,7 +84,6 @@ class ApiContractTest extends IntegrationTest {
         public void unknown(RouterFunction<?> routerFunction) {}
     }
 
-    @SuppressWarnings("removal") // pathExtension is still part of the interface we must implement
     private static final class PredicateParts implements RequestPredicates.Visitor {
         Set<HttpMethod> methods = Set.of();
         String path = "";
