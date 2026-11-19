@@ -30,7 +30,7 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-session-jdbc")
 	implementation("org.flywaydb:flyway-database-postgresql")
 	implementation("org.bouncycastle:bcprov-jdk18on:1.87")
-	implementation("com.twelvemonkeys.imageio:imageio-webp:3.12.0")
+	implementation("com.twelvemonkeys.imageio:imageio-webp:3.15.3")
 	implementation("org.springframework.modulith:spring-modulith-observability-api")
 	implementation("org.springframework.modulith:spring-modulith-starter-core")
 	implementation("org.springframework.modulith:spring-modulith-starter-jpa")
