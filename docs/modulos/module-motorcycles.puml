@@ -18,11 +18,14 @@ top to bottom direction
 System_Boundary("NitidaApplication_boundary", "NitidaApplication", $tags="") {
   Container_Boundary("NitidaApplication.NitidaApplication_boundary", "NitidaApplication", $tags="") {
     Component(NitidaApplication.NitidaApplication.Shared, "Shared", $techn="Module", $descr="", $tags="", $link="")
+    Component(NitidaApplication.NitidaApplication.Identity, "Identity", $techn="Module", $descr="", $tags="", $link="")
     Component(NitidaApplication.NitidaApplication.Motorcycles, "Motorcycles", $techn="Module", $descr="", $tags="", $link="")
   }
 
 }
 
+Rel(NitidaApplication.NitidaApplication.Identity, NitidaApplication.NitidaApplication.Shared, "uses", $techn="", $tags="", $link="")
+Rel(NitidaApplication.NitidaApplication.Motorcycles, NitidaApplication.NitidaApplication.Identity, "depends on", $techn="", $tags="", $link="")
 Rel(NitidaApplication.NitidaApplication.Motorcycles, NitidaApplication.NitidaApplication.Shared, "uses", $techn="", $tags="", $link="")
 
 SHOW_LEGEND(true)
