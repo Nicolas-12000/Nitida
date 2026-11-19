@@ -53,10 +53,72 @@ Entregable: **`docs/api.md`** (T4), escrito a mano. Por cada endpoint de la spec
 | 2 | `motorcycles`, `intake`, `files` | **Hecha** |
 | 3 | `orders`, `catalog` (parte 1) | **Hecha**, con la integración HTTP y la matriz de `orders` (commit 485403d) |
 | 4 | `history` | **Hecha** (JCS, cadena, firma, verificación, enmiendas, odómetro, links, concurrencia) |
-| 5 | `cashdesk`, seriales globales | Seriales **hechos**. `cashdesk`: dominio, migración `V12` y pruebas **escritas**; faltan la aplicación y la web (**T2**) |
-| 6 | Portal del propietario | Tablas e `issueClaimCode` hechos; los casos de uso están **pendientes** (T3) |
+| 5 | `cashdesk`, seriales globales | **Hecha** (T2): cuadre, alertas F1–F6, listeners y scheduler |
+| 6 | Portal del propietario | **Hecha en el back** (T3): reclamar, traspasar, historial y links del propietario. E2E Playwright = frontend |
 
-Calidad al último commit: ~200 pruebas en verde, ~92 % de cobertura de líneas, 77 % de mutación con PIT (umbral 70), `Modulith verify` y ArchUnit en verde.
+Calidad al último commit: 371 pruebas en verde, `Modulith verify`, ArchUnit (arquitectura + seguridad) y matriz de acceso en verde; PIT con umbral 70 %.
+
+## Checklist del MVP contra la spec
+
+Marcado = hecho y con prueba. Orden sugerido para la entrega: RLS → contrato → semilla → documentos de seguridad → TOTP/ADR → umbrales.
+
+### Funcionalidad (§5, §6)
+- [x] UC-01…24: orquestadores y rutas de taller, recepción, OT, historial, caja F1–F6, catálogo y seriales, portal del propietario
+- [x] Reglas núcleo: estados de OT, pagos y anulación, entrega con código de reclamación, cadena JCS/Ed25519, enmiendas, odómetro, links, cuadre por día de Bogotá, alertas, seriales globales, evidencia, taller suspendido o pendiente dentro del contenido firmado
+- [x] RN-82 traspaso firmado por la identidad de plataforma (sin nombres); el dueño anterior no ve entradas posteriores
+- [ ] RN-14 cambio de placa por API (hoy solo `Motorcycle.changePlate()` + `plate_history` en dominio)
+- [ ] RN-22 diagnóstico libre puede llevar PII escrita por el mecánico: documentar y pedir aviso en la UI
+
+### Aislamiento entre talleres (§8.2) — el hueco más grande
+- [x] Barrera de aplicación: `WorkshopContext` validado contra membresías + `404` para recursos de otro taller (`AccessMatrixTest`)
+- [ ] RLS en PostgreSQL: `ENABLE ROW LEVEL SECURITY` + políticas por `app.workshop_id`, `SET LOCAL` por transacción
+- [ ] Usuario de aplicación distinto al dueño de las tablas
+- [ ] Pruebas Testcontainers: aislamiento con IDs ajenos; concurrencia de seriales y entregas sobre Postgres real
+
+### Contrato HTTP (§9)
+- [x] `docs/api.md` escrito a mano + `ApiContractTest` (falla si una ruta falta o sobra)
+- [x] Catálogo de `code` de Problem Details para el frontend
+- [ ] Paginación por cursor en listados (hoy: últimos 200 alertas/órdenes, 20 clientes)
+- [ ] (Opcional) OpenAPI/Swagger generado: ver decisión 9
+
+### Autenticación y sesión (§10)
+- [x] Argon2id, sesión JDBC 8 h, CSRF por cookie + encabezado, rotación de sesión, bloqueo progresivo, logout
+- [x] Cookie `SESSION` con `HttpOnly` + `SameSite=Lax` (estaba sin ellas; corregido y probado en `OwaspSecurityTest`)
+- [ ] TOTP obligatorio para admin / opcional para dueño, o ADR de aplazamiento
+- [ ] Envío de correo de invitaciones por Mailpit (hoy el token vuelve una vez al dueño: decisión 8)
+- [ ] Recuperación de contraseña (citada en §10, sin UC en §6)
+- [ ] Límite por IP detrás de proxy (`X-Forwarded-For` de confianza); hoy usa `remoteAddr`
+
+### Seguridad y arquitectura (§13)
+- [x] ArchUnit de capas + reglas de seguridad (sin `System.out`, solo `SecureRandom`, handlers sin acceso directo a BD, sin SQL nativo armado a mano, listeners en `application`, eventos `record`), cada regla con violación a propósito que demuestra que muerde
+- [x] Matriz rol × endpoint de §3.1 (`AccessMatrixTest`, 61 casos)
+- [x] Pruebas OWASP en ejecución (`OwaspSecurityTest`): encabezados, Actuator cerrado, cookie, Argon2id y tokens en hash, inyección, historial solo-agregar, logs sin PII, errores genéricos
+- [ ] `docs/owasp-top10.md`: categoría → control → prueba → archivo
+- [ ] `docs/amenazas.md` (STRIDE §13.1)
+
+### Pruebas y calidad (§15)
+- [x] P1–P8, P11, P12; D3, D4, D5; límites de §15.3; concurrencia de entregas y seriales
+- [ ] P9 como `@Property` jqwik (hoy: caminata aleatoria con semilla en integración)
+- [ ] P10 como `@Property` jqwik (seriales en varias motos)
+- [ ] D1 verificador independiente en Python; D2 Ed25519 JDK vs BouncyCastle
+- [ ] PIT ≥ 75 % global y ≥ 85 % en `history`, alcance con `orders`, `cashdesk` y `shared`
+- [ ] JaCoCo ≥ 85 % (hoy la regla del build exige 70 %)
+
+### CI/CD (§14)
+- [x] `gradle-wrapper.jar` versionado (Actions fallaba con `Unable to access jarfile`)
+- [x] Workflow sin `hashFiles` en `if` de job; detección de cambios (backend/frontend) para no correr PIT ni la imagen en vano
+- [x] Paso de Sonar que de verdad corre cuando hay `SONAR_TOKEN` (antes la condición siempre era falsa) con Quality Gate
+- [x] Check único `CI passed` para exigir en la protección de rama
+- [ ] Configurar `SONAR_TOKEN` (secret) y `SONAR_HOST_URL` (variable) en GitHub, y captura del Quality Gate en verde
+- [ ] Pasar `actionlint` (no se pudo correr local: sin Docker en WSL)
+
+### Documentación y datos (§16)
+- [ ] `README.md` del backend: arranque, variables, cómo correr Sonar y PIT, firma = integridad, no no-repudio
+- [ ] `docs/decisiones/` con los ADRs de la lista de abajo
+- [ ] Semilla del perfil `dev`: 2 talleres (uno verificado), 1 admin, 5 motos con historial
+
+### Fuera del MVP (correcto que no estén)
+Web Push, recordatorios por km, publicación de cabezas de cadena, mercado y precios, inventario de repuestos, catálogo compartido.
 
 ## Tareas pendientes (en orden)
 
@@ -65,25 +127,25 @@ Calidad al último commit: ~200 pruebas en verde, ~92 % de cobertura de líneas,
 - Se quitaron los imports y campos sin uso (`AuthHandler`, `EntryContent`, `CreatePublicLinkUseCase.entries`, `VIN` en una prueba). Se agregó `Serial.getReason()`.
 - Quedan solo los errores de `CashdeskIntegrationTest`, que es la prueba en rojo de T2.
 
-### T2 — `cashdesk` (UC-17..19, spec §5.6)
+### T2 — `cashdesk` (UC-17..19, spec §5.6) ✅
 - Casos de uso: `CloseCashCountUseCase`, `ReopenCashCountUseCase`, `ResolveLeakAlertUseCase` y `EvaluateScheduledAlertsUseCase`, que corre cada 15 min con `@Scheduled` y genera F1 y F5.
 - Listeners: `WorkOrderCancelled` → F2, desfase de caja → F3, `OrdersApi.inconsistentZeroTotalOrders()` → F4, `SerialRejected` → F6. Son idempotentes gracias a `dedupe_key`.
 - Web: `CashdeskRoutes`/`CashdeskHandler` (rutas de §9). **Solo el dueño**: el mecánico y la recepción reciben `403`.
 - **Pruebas:** P9 con jqwik (el esperado es Σ del efectivo no anulado). Límites de RN-52: diferencia igual a la tolerancia → BALANCED; tolerancia + 1 → UNBALANCED. Un pago a las 23:59:59 y otro a las 00:00:00 en `America/Bogota` caen en días distintos. RN-32: −1 min, exacto y +1 min. Un cuadre cerrado no se edita; al reabrirlo se exige un motivo y queda auditado.
 - Commit: `feat(cashdesk): cash count, leak alerts F1–F6 and scheduler`.
 
-### T3 — Portal del propietario (UC-20, UC-21, spec §5.9)
+### T3 — Portal del propietario (UC-20, UC-21, spec §5.9) ✅
 - `ClaimMotorcycleUseCase`: código de 8 caracteres, un solo uso, vigencia de 30 días.
 - `TransferOwnershipUseCase` y `AcceptOwnershipTransferUseCase`: generan una entrada `OWNERSHIP_TRANSFER` sin nombres.
 - Rol `OWNER` en las rutas `/owner/**`.
 - **Pruebas:** hay un solo propietario activo (índice único). Un código usado, vencido o inexistente da exactamente la misma respuesta. El dueño anterior pierde acceso a las entradas futuras.
 
-### T4 — Contrato para el frontend
+### T4 — Contrato para el frontend ✅
 - `docs/api.md` (ver «Contrato con el frontend»), con el catálogo completo de `code` → significado.
 - **Prueba:** recorre los `RouterFunction` registrados y falla si alguna ruta no aparece en `docs/api.md`.
 - Se le entrega al compañero del frontend junto con la colección de ejemplos (`curl`/HTTP file).
 
-### T5 — Arquitectura: ArchUnit + Spring Modulith
+### T5 — Arquitectura: ArchUnit + Spring Modulith ✅
 Ya existen en `ArchitectureTest`: `verify()`, sin `@RestController`, `@Transactional` solo en `application`, handlers sin transacción, dominio sin capas externas, handlers sin repositorios y nombres `*UseCase`.
 
 Reglas por agregar:
@@ -95,7 +157,7 @@ Reglas por agregar:
 
 **Pruebas:** cada regla nueva lleva un caso de violación a propósito (una clase de fixture en `src/test`) que demuestra que la regla falla. Además, `Documenter` regenera `docs/modulos/*.puml`.
 
-### T6 — OWASP Top 10:2025 (spec §13.2)
+### T6 — OWASP Top 10:2025 (spec §13.2) — pruebas ✅, falta el documento
 Entregable: `docs/owasp-top10.md`, con una tabla **categoría → control → prueba automática → archivo**. Debe haber al menos una prueba por categoría:
 
 | Cat. | Prueba |
@@ -161,4 +223,5 @@ En CI: ZAP baseline contra `docker compose`, sin alertas altas.
 6. Los índices únicos parciales de seriales y de propietario activo se emulan con una columna anulable + `UNIQUE` (portable entre H2 y Postgres).
 7. Límite de intentos en memoria propio (`RateLimiter`) en lugar de Bucket4j; SBOM con Trivy en lugar del plugin CycloneDX.
 8. Las invitaciones le devuelven el token al dueño una sola vez (por ahora sin correo ni Mailpit).
-9. Contrato HTTP en `docs/api.md` escrito a mano, validado por una prueba, en lugar de OpenAPI: springdoc con `RouterFunction` obliga a anotar cada ruta.
+9. Contrato HTTP en `docs/api.md` escrito a mano, validado por `ApiContractTest`, en lugar de OpenAPI/Swagger: springdoc solo documenta `RouterFunction` si se anota cada ruta con `@RouterOperation` (y expone `/swagger-ui` y `/v3/api-docs`, que hoy están cerrados a propósito). Si el frontend lo pide, se agrega solo en el perfil `dev`.
+10. `OWNERSHIP_TRANSFER` lo firma una identidad de plataforma (`WorkshopsApi.PLATFORM_ID`, migración `V13`, llave creada al arrancar), porque ningún taller hizo el traspaso.
