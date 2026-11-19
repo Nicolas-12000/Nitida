@@ -178,7 +178,7 @@ Entregable: `docs/owasp-top10.md`, con una tabla **categoría → control → pr
 | A09 Logging & Alerting | Un appender de captura comprueba que tras login, registro y cliente los logs no contienen contraseña, correo, teléfono, cédula, token ni código; una verificación `INVALID` deja log y alerta |
 | A10 Exceptional Conditions | Excepción interna forzada → Problem Details genérico sin stack; llave o BD caída al verificar → `UNVERIFIABLE` |
 
-En CI: ZAP baseline contra `docker compose`, sin alertas altas.
+En CI: ZAP pasivo contra cada operación de `docs/openapi.yaml` (`.zap/plan.yaml`); falla en alerta media o alta.
 
 ### T7 — SonarQube
 - `sonar-project.properties` y el paso de CI con `sonar.qualitygate.wait=true` **ya existen**. Faltan el servidor y la evidencia.

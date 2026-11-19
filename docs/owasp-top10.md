@@ -17,7 +17,7 @@ Cada categoría de la spec §13.2 apunta a un control del código, a la prueba a
 
 ## Lo que este documento no promete
 
-- **DAST:** el *baseline* de ZAP corre en el CI contra `/actuator/health`; no recorre la API autenticada.
+- **DAST:** ZAP pide cada operación de `docs/openapi.yaml` una vez y aplica las reglas pasivas (`.zap/plan.yaml`). No hay ataque activo: sin sesión las rutas privadas responden 401, y un active scan sumaría varios minutos para volver a ver esos 401. Las reglas apagadas son las del HTTP del CI (cookie `Secure`, HSTS), el CSRF de doble envío y las fechas ISO del contrato.
 - **RLS (spec §8.2):** la segunda barrera (políticas por taller en PostgreSQL) **no está implementada**; hoy el aislamiento es solo de aplicación y lo prueba `AccessMatrixTest`. Está en el plan como T8.
 - **TOTP:** no implementado; ver `docs/decisiones/0011-totp-aplazado.md`.
 - **Almacenamiento de las llaves:** el servidor guarda las llaves privadas; la firma da integridad, no no-repudio frente a la plataforma (ver README).

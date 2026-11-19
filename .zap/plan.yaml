@@ -1,0 +1,47 @@
+# Passive scan of every OpenAPI operation. No active attack: one request per operation,
+# then the rules already collected. A full active scan would add several minutes for little
+# extra signal on an API that answers 401 without a session.
+env:
+  contexts:
+    - name: nitida
+      urls:
+        - http://localhost:8080
+  parameters:
+    failOnError: true
+    failOnWarning: true
+    progressToStdout: false
+
+jobs:
+  - type: passiveScan-config
+    parameters:
+      maxAlertsPerRule: 10
+    rules:
+      # Health is cacheable on purpose.
+      - id: 10049
+        threshold: off
+      # CI talks plain HTTP. Production sets NITIDA_COOKIE_SECURE and sits behind TLS.
+      - id: 10011
+        threshold: off
+      - id: 10035
+        threshold: off
+      # XSRF-TOKEN is readable on purpose (double-submit). SESSION stays HttpOnly;
+      # OwaspSecurityTest checks that.
+      - id: 10010
+        threshold: off
+      # The contract returns ISO-8601 timestamps. This rule flags any date.
+      - id: 10096
+        threshold: off
+
+  - type: openapi
+    parameters:
+      apiFile: /zap/wrk/docs/openapi.yaml
+      targetUrl: http://localhost:8080
+
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 1
+
+  - type: exitStatus
+    parameters:
+      errorLevel: High
+      warnLevel: Medium

@@ -1,2 +1,0 @@
-# ZAP baseline rules: id<TAB>action<TAB>reason. Everything else fails the build as WARN->FAIL via fail_action.
-10049	IGNORE	Storable and cacheable content: health endpoint is intentionally cacheable
