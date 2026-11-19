@@ -10,6 +10,8 @@ build/
 ### Spring / Java ###
 *.class
 *.jar
+# the wrapper must be versioned: CI runs ./gradlew (setup-gradle validates its checksum)
+!gradle/wrapper/gradle-wrapper.jar
 *.war
 *.ear
 *.hprof
