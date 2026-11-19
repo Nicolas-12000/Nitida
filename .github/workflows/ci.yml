@@ -196,6 +196,7 @@ jobs:
     # Job level, not step level: every `docker compose` call (start, logs on failure) interpolates these.
     env:
       POSTGRES_PASSWORD: ci-only-password
+      NITIDA_APP_DB_PASSWORD: ci-only-app-password
       NITIDA_SIGNING_KEK: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
       NITIDA_COOKIE_SECURE: 'false'
       BACKEND_IMAGE: nitida-backend:ci

@@ -71,9 +71,9 @@ Marcado = hecho y con prueba. Orden sugerido para la entrega: RLS → contrato �
 
 ### Aislamiento entre talleres (§8.2) — el hueco más grande
 - [x] Barrera de aplicación: `WorkshopContext` validado contra membresías + `404` para recursos de otro taller (`AccessMatrixTest`)
-- [ ] RLS en PostgreSQL: `ENABLE ROW LEVEL SECURITY` + políticas por `app.workshop_id`, `SET LOCAL` por transacción
-- [ ] Usuario de aplicación distinto al dueño de las tablas
-- [ ] Pruebas Testcontainers: aislamiento con IDs ajenos; concurrencia de seriales y entregas sobre Postgres real
+- [x] RLS en PostgreSQL: `ENABLE ROW LEVEL SECURITY` + una política por tabla de un solo taller (`db/postgres/V15__row_level_security.sql`); `TenantSession` fija `app.workshop_id` al empezar cada transacción. ADR 0014
+- [x] Usuario de aplicación distinto al dueño de las tablas (`nitida_app`, sin BYPASSRLS; Flyway usa el dueño; `docker/postgres-init/10-app-role.sh`)
+- [x] Pruebas Testcontainers (`RlsIntegrationTest`, 10): aislamiento con IDs ajenos, escritura cruzada rechazada, flujo completo bajo RLS, listeners y planificador, auditoría e historial de solo-agregar, carrera de seriales y de pagos sobre Postgres real
 
 ### Contrato HTTP (§9)
 - [x] `docs/api.md` escrito a mano + `ApiContractTest` (falla si una ruta falta o sobra)

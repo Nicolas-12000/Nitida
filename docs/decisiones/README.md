@@ -15,3 +15,4 @@ Cada archivo es corto: contexto, decisión y consecuencias. Los números siguen 
 - [11. TOTP obligatorio para el administrador de plataforma](0011-totp-para-el-administrador.md)
 - [12. Los pagos de una orden se serializan con bloqueo de fila](0012-pagos-serializados-por-orden.md)
 - [13. Las publicaciones incompletas se reintentan](0013-reintento-de-eventos.md)
+- [14. Row-level security con dos roles de base de datos](0014-rls-con-dos-roles.md)

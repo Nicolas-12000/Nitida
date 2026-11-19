@@ -4,6 +4,7 @@ import co.nitida.cashdesk.domain.AlertRules;
 import co.nitida.cashdesk.domain.AlertType;
 import co.nitida.intake.IntakeApi;
 import co.nitida.orders.OrdersApi;
+import co.nitida.shared.tenancy.TenantSession;
 import co.nitida.workshops.WorkshopsApi;
 import java.time.Clock;
 import java.time.Duration;
@@ -20,19 +21,22 @@ public class EvaluateScheduledAlertsUseCase {
     private final OrdersApi orders;
     private final WorkshopsApi workshops;
     private final LeakAlerts alerts;
+    private final TenantSession tenant;
     private final Clock clock;
 
-    EvaluateScheduledAlertsUseCase(IntakeApi intakes, OrdersApi orders, WorkshopsApi workshops, LeakAlerts alerts, Clock clock) {
+    EvaluateScheduledAlertsUseCase(IntakeApi intakes, OrdersApi orders, WorkshopsApi workshops, LeakAlerts alerts, TenantSession tenant, Clock clock) {
         this.intakes = intakes;
         this.orders = orders;
         this.workshops = workshops;
         this.alerts = alerts;
+        this.tenant = tenant;
         this.clock = clock;
     }
 
     @Scheduled(fixedDelayString = "${nitida.alerts.scan-interval:PT15M}", initialDelayString = "${nitida.alerts.scan-interval:PT15M}")
     @Transactional
     public void execute() {
+        tenant.system(); // looks at every workshop on purpose; each alert it raises still belongs to one
         var now = clock.instant();
         // the smallest thresholds the settings allow (1 h, 1 day) bound the queries; each workshop's own value filters next
         var overdueIntakes = intakes.openCreatedBefore(now.minus(Duration.ofHours(1)));

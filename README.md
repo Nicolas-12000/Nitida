@@ -20,10 +20,13 @@ docker compose up           # postgres, backend (:8080) y mailpit (:8025)
 |---|---|
 | `POSTGRES_PASSWORD` | Clave de la base. Obligatoria: `docker compose` no arranca sin ella |
 | `NITIDA_SIGNING_KEK` | Llave de 32 bytes en base64 que cifra las llaves de firma de los talleres. **No va al repositorio.** Generar con `openssl rand -base64 32` |
+| `NITIDA_APP_DB_PASSWORD` | Clave del rol `nitida_app`, con el que se conecta la aplicación (no es dueño de las tablas, así que aplica el row-level security). Distinta de `POSTGRES_PASSWORD`, que es del dueño y solo usa Flyway |
 | `NITIDA_COOKIE_SECURE` | `true` (por defecto). Solo `false` en desarrollo local por HTTP |
 | `NITIDA_DEV_SEED_PASSWORD` | Opcional, solo perfil `dev` (12+ caracteres). Si se define, al arrancar crea datos de desarrollo: ver abajo |
 
-Sin Docker, las pruebas usan H2 en modo PostgreSQL: no necesitan nada instalado.
+Sin Docker, las pruebas usan H2 en modo PostgreSQL: no necesitan nada instalado. Las de row-level security (`RlsIntegrationTest`) necesitan Docker (Testcontainers) y se omiten si no hay.
+
+Si ya tenías una base creada con una versión anterior, ejecuta `docker compose down -v` una vez: el rol `nitida_app` se crea solo cuando se crea la base.
 
 ### Datos de desarrollo (para el frontend)
 
@@ -83,4 +86,4 @@ Cada entrada del historial se encadena con la anterior (SHA-256 sobre JSON canó
 
 ## Límites conocidos
 
-Ver el checklist de [`backend/planmvp.md`](backend/planmvp.md). Los más relevantes: sin RLS en PostgreSQL (el aislamiento entre talleres es de aplicación), sin códigos de recuperación de TOTP, y límite de intentos en memoria (una instancia).
+Ver el checklist de [`backend/planmvp.md`](backend/planmvp.md). Los más relevantes: sin códigos de recuperación de TOTP, y límite de intentos en memoria (una instancia).

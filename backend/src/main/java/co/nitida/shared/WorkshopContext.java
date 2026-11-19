@@ -17,6 +17,11 @@ public record WorkshopContext(UUID workshopId, UUID userId, Set<Role> roles) {
         return ctx;
     }
 
+    /** For code that must work with or without a request (transaction setup): empty when there is none. */
+    public static java.util.Optional<WorkshopContext> currentOrEmpty() {
+        return java.util.Optional.ofNullable(CURRENT.get());
+    }
+
     /** The workshop named in the URL must be the active one validated from the header; otherwise 404. */
     public static WorkshopContext forPath(String pathWorkshopId) {
         var ctx = current();
