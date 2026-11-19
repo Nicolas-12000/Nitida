@@ -40,7 +40,7 @@ class AuthHandler {
 
     ServerResponse register(ServerRequest req) throws Exception {
         var body = req.body(RegisterRequest.class);
-        var result = register.execute(new RegisterUserUseCase.Command(body.email(), body.password(), body.displayName()));
+        var result = register.execute(new RegisterUserUseCase.Command(body.email(), body.password(), body.displayName(), req.servletRequest().getRemoteAddr()));
         return ServerResponse.status(HttpStatus.CREATED).body(result);
     }
 
