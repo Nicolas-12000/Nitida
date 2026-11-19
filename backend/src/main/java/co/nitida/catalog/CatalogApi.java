@@ -15,6 +15,14 @@ public interface CatalogApi {
         record Rejected(String serialHash) implements SerialRegistration {}
     }
 
+    record CodeInfo(String code, String type) {}
+
+    /** RN-92: validates a product code (digits, length, check digit) and says what kind it is. */
+    CodeInfo parseCode(String raw);
+
+    /** Retires one serial registered by this order (e.g. its part was removed). No-op if it is not that order's. */
+    void releaseSerial(UUID serialId, UUID orderId);
+
     Optional<ProductInfo> findProduct(UUID workshopId, String code);
 
     /** Validates the code (RN-92) and stores a product proposed by the workshop (RN-93). */

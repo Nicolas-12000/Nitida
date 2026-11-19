@@ -1,21 +1,18 @@
 package co.nitida.workshops.web;
 
 import co.nitida.identity.AuthenticatedUser;
-import co.nitida.identity.IdentityApi;
 import co.nitida.shared.ApiException;
-import co.nitida.shared.Role;
 import co.nitida.shared.WorkshopContext;
 import co.nitida.workshops.WorkshopStatus;
 import co.nitida.workshops.WorkshopsApi;
 import co.nitida.workshops.application.ChangeWorkshopStatusUseCase;
+import co.nitida.workshops.application.ListMyWorkshopsUseCase;
+import co.nitida.workshops.application.ListWorkshopsForAdminUseCase;
 import co.nitida.workshops.application.RegisterWorkshopUseCase;
 import co.nitida.workshops.application.UpdateWorkshopSettingsUseCase;
-import co.nitida.workshops.domain.WorkshopRepository;
 import java.util.Base64;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.function.ServerRequest;
@@ -30,23 +27,22 @@ class WorkshopHandler {
 
     record StatusRequest(WorkshopStatus status, String evidence) {}
 
-    record MineItem(UUID id, String name, String municipality, WorkshopStatus status, List<Role> roles) {}
-
     private final RegisterWorkshopUseCase register;
     private final ChangeWorkshopStatusUseCase changeStatus;
     private final UpdateWorkshopSettingsUseCase settings;
     private final WorkshopsApi api;
-    private final IdentityApi identity;
-    private final WorkshopRepository workshops;
+    private final ListMyWorkshopsUseCase mine;
+    private final ListWorkshopsForAdminUseCase adminList;
 
     WorkshopHandler(RegisterWorkshopUseCase register, ChangeWorkshopStatusUseCase changeStatus,
-                    UpdateWorkshopSettingsUseCase settings, WorkshopsApi api, IdentityApi identity, WorkshopRepository workshops) {
+                    UpdateWorkshopSettingsUseCase settings, WorkshopsApi api, ListMyWorkshopsUseCase mine,
+                    ListWorkshopsForAdminUseCase adminList) {
         this.register = register;
         this.changeStatus = changeStatus;
         this.settings = settings;
         this.api = api;
-        this.identity = identity;
-        this.workshops = workshops;
+        this.mine = mine;
+        this.adminList = adminList;
     }
 
     ServerResponse register(ServerRequest req) throws Exception {
@@ -57,13 +53,7 @@ class WorkshopHandler {
     }
 
     ServerResponse mine(ServerRequest req) {
-        var memberships = identity.membershipsOf(userId());
-        var rolesByWorkshop = memberships.stream().collect(Collectors.groupingBy(
-                IdentityApi.WorkshopRole::workshopId, Collectors.mapping(IdentityApi.WorkshopRole::role, Collectors.toList())));
-        var items = workshops.findByIdIn(rolesByWorkshop.keySet()).stream()
-                .map(w -> new MineItem(w.getId(), w.getName(), w.getMunicipality(), w.getStatus(), rolesByWorkshop.get(w.getId())))
-                .toList();
-        return ServerResponse.ok().body(items);
+        return ServerResponse.ok().body(mine.execute(userId()));
     }
 
     ServerResponse detail(ServerRequest req) {
@@ -80,12 +70,7 @@ class WorkshopHandler {
 
     ServerResponse adminList(ServerRequest req) {
         var status = req.param("status").map(WorkshopStatus::valueOf).orElse(WorkshopStatus.PENDING_VERIFICATION);
-        if (!identity.isPlatformAdmin(userId())) throw ApiException.forbidden();
-        var items = workshops.findByStatusOrderByCreatedAtAsc(status).stream()
-                .map(w -> Map.of("id", w.getId(), "name", w.getName(), "municipality", w.getMunicipality(),
-                        "documentNumber", w.getDocumentNumber(), "phone", w.getPhone(), "status", w.getStatus()))
-                .toList();
-        return ServerResponse.ok().body(items);
+        return ServerResponse.ok().body(adminList.execute(userId(), status));
     }
 
     ServerResponse changeStatus(ServerRequest req) throws Exception {

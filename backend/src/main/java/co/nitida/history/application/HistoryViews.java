@@ -4,7 +4,6 @@ import co.nitida.history.VerificationResult;
 import co.nitida.history.domain.EntryType;
 import co.nitida.history.domain.HistoryEntry;
 import co.nitida.motorcycles.MotorcyclesApi;
-import co.nitida.motorcycles.domain.VehicleIdentifiers;
 import co.nitida.shared.Json;
 import co.nitida.workshops.WorkshopsApi;
 import java.time.Instant;
@@ -60,7 +59,7 @@ class HistoryViews {
                     shop == null ? null : shop.name(), shop == null ? null : shop.municipality(),
                     Boolean.TRUE.equals(content.get("workshopVerified")), shop == null ? null : shop.suspendedAt(), content));
         }
-        return new HistoryView(new MotorcycleSummary(VehicleIdentifiers.maskPlate(moto.plate()), moto.brand(), moto.line(),
+        return new HistoryView(new MotorcycleSummary(moto.maskedPlate(), moto.brand(), moto.line(),
                 moto.modelYear(), moto.displacementCc()), views, history.verify(motorcycleId, chain),
                 new EvidenceSummary(total, withEvidence), transfers);
     }

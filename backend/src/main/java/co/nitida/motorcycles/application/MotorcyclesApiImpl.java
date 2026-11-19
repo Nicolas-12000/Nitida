@@ -2,6 +2,8 @@ package co.nitida.motorcycles.application;
 
 import co.nitida.motorcycles.MotorcycleRegistered;
 import co.nitida.motorcycles.MotorcyclesApi;
+import co.nitida.motorcycles.domain.ClaimCode;
+import co.nitida.motorcycles.domain.ClaimCodeRepository;
 import co.nitida.motorcycles.domain.CustomerRepository;
 import co.nitida.motorcycles.domain.Motorcycle;
 import co.nitida.motorcycles.domain.MotorcycleRepository;
@@ -23,14 +25,16 @@ class MotorcyclesApiImpl implements MotorcyclesApi {
     private final MotorcycleRepository motorcycles;
     private final PlateHistoryRepository plates;
     private final CustomerRepository customers;
+    private final ClaimCodeRepository claimCodes;
     private final ApplicationEventPublisher events;
     private final Clock clock;
 
     MotorcyclesApiImpl(MotorcycleRepository motorcycles, PlateHistoryRepository plates, CustomerRepository customers,
-                       ApplicationEventPublisher events, Clock clock) {
+                       ClaimCodeRepository claimCodes, ApplicationEventPublisher events, Clock clock) {
         this.motorcycles = motorcycles;
         this.plates = plates;
         this.customers = customers;
+        this.claimCodes = claimCodes;
         this.events = events;
         this.clock = clock;
     }
@@ -88,13 +92,20 @@ class MotorcyclesApiImpl implements MotorcyclesApi {
     }
 
     @Override
+    @Transactional
+    public void issueClaimCode(UUID motorcycleId, String codeHash, java.time.Instant expiresAt) {
+        claimCodes.save(new ClaimCode(UuidV7.next(), motorcycleId, ClaimCode.DELIVERY, codeHash, null, expiresAt));
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public boolean customerBelongsTo(UUID customerId, UUID workshopId) {
         return customers.existsByIdAndWorkshopIdAndErasedAtIsNull(customerId, workshopId);
     }
 
     static MotorcycleInfo info(Motorcycle m) {
-        return new MotorcycleInfo(m.getId(), m.getVin(), m.getCurrentPlate(), m.isLegacyPlateFormat(), m.getBrand(),
+        return new MotorcycleInfo(m.getId(), m.getVin(), m.getCurrentPlate(), VehicleIdentifiers.maskPlate(m.getCurrentPlate()),
+                m.isLegacyPlateFormat(), m.getBrand(),
                 m.getLine(), m.getModelYear(), m.getDisplacementCc());
     }
 }

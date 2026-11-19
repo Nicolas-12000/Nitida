@@ -42,6 +42,19 @@ class CatalogApiImpl implements CatalogApi {
     }
 
     @Override
+    public CodeInfo parseCode(String raw) {
+        var c = ProductCode.of(raw);
+        return new CodeInfo(c.value(), c.type());
+    }
+
+    @Override
+    @Transactional
+    public void releaseSerial(UUID serialId, UUID orderId) {
+        serials.findById(serialId).filter(s -> s.isActive() && orderId.equals(s.getWorkOrderId()))
+                .ifPresent(s -> s.retire("Repuesto retirado de la orden", clock.instant()));
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public Optional<ProductInfo> findProduct(UUID workshopId, String code) {
         return products.findByWorkshopIdAndCode(workshopId, ProductCode.of(code).value()).map(CatalogApiImpl::info);

@@ -78,6 +78,8 @@ public class Serial extends AssignedIdEntity {
         this.reason = r;
     }
 
+    public UUID getWorkOrderId() { return workOrderId; }
+
     public boolean isActive() { return "ACTIVE".equals(status); }
 
     public String getNormalizedSerial() { return normalizedSerial; }

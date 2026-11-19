@@ -5,8 +5,8 @@ import java.util.UUID;
 
 /** Public API of the motorcycles module. */
 public interface MotorcyclesApi {
-    record MotorcycleInfo(UUID id, String vin, String plate, boolean legacyPlateFormat, String brand, String line,
-                          Integer modelYear, Integer displacementCc) {}
+    record MotorcycleInfo(UUID id, String vin, String plate, String maskedPlate, boolean legacyPlateFormat, String brand,
+                          String line, Integer modelYear, Integer displacementCc) {}
 
     /** Declared data, not validated against external sources in the MVP (RN-16). */
     record MotorcycleDetails(String brand, String line, Integer modelYear, Integer displacementCc) {}
@@ -25,6 +25,9 @@ public interface MotorcyclesApi {
     java.util.Map<UUID, MotorcycleInfo> findAll(java.util.Collection<UUID> motorcycleIds);
 
     Optional<MotorcycleInfo> lookup(String plate, String vin);
+
+    /** RN-80: stores the hash of a single-use claim code handed out on delivery (the code is never stored in clear). */
+    void issueClaimCode(UUID motorcycleId, String codeHash, java.time.Instant expiresAt);
 
     boolean customerBelongsTo(UUID customerId, UUID workshopId);
 }
