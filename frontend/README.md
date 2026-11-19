@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Nítida · frontend
 
-## Getting Started
+Next.js 16 (App Router, Cache Components) + Tailwind v4, construido sobre [`DESIGN.MD`](DESIGN.MD) y el contrato [`../docs/api.md`](../docs/api.md).
 
-First, run the development server:
+## Arranque
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+corepack pnpm install
+corepack pnpm dev        # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+El navegador siempre llama al mismo origen (`/api/v1/...`) y Next lo reenvía al backend Spring (`NITIDA_API_URL`, por defecto `http://localhost:8080`). Para usarlo con el backend real, levante primero `docker compose up` en la raíz.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Modo demostración
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Sin backend, la pantalla de ingreso ofrece **Probar sin servidor**: un backend simulado en el navegador (`src/lib/demo/`) con un taller de ejemplo de Pasto y las mismas formas de respuesta, códigos de error y reglas principales que la API real (transiciones de orden, pagos, entrega con código de reclamo, cadena SHA-256 del historial, caja, alertas F1–F6, portal del propietario). Los datos viven en `localStorage` de ese navegador y se reinician desde la barra superior. Se apaga con `NEXT_PUBLIC_NITIDA_DEMO=off`.
 
-## Learn More
+| Rol de ejemplo | Qué recorrer |
+|---|---|
+| Dueño del taller | Tablero, kanban de órdenes, caja y alertas, equipo, ajustes |
+| Recepción | Registrar entrada (con fotos de ejemplo), cobrar y entregar |
+| Mecánico | Trabajos, repuestos con escáner y evidencia; no ve pagos |
+| Propietaria de moto | Mis motos, historial, enlace público y traspaso |
+| Administración | Activar TOTP (obligatorio) y luego verificar o suspender talleres |
 
-To learn more about Next.js, take a look at the following resources:
+### Cuenta y seguridad (contrato desde la versión con TOTP)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Ingreso con TOTP:** un `401 TOTP_REQUIRED` muestra el paso del código de 6 dígitos; el mismo campo acepta un código de recuperación.
+- **Mi cuenta** (`/cuenta`): activar la verificación en dos pasos (QR con la librería `qrcode`, primer código y 8 códigos de recuperación que se muestran una vez) y unirse a un taller pegando el código de invitación.
+- **Administrador sin TOTP** (`totpSetupRequired`): `/admin` lo lleva a activarlo primero.
+- **Recuperar contraseña** (`/recuperar`): el código llega por correo (Mailpit en desarrollo, bandeja en http://localhost:8025).
+- **Invitaciones:** el código va por correo; el dueño ya no lo ve.
+- **Textos públicos** (diagnóstico, trabajos, nombre de repuesto, motivos): avisan mientras se escribe si llevan un correo, un teléfono o una cédula (`PERSONAL_DATA`, RN-22).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+En el modo demostración no hay correo: un *buzón de demostración* muestra el código que habría llegado, y la pantalla de TOTP muestra el código vigente para probar sin aplicación.
 
-## Deploy on Vercel
+## Estructura
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+src/app/            rutas: portada, /login, /registro, /v/[token] (hoja pública) y (app)/ para el taller
+src/components/     ui/ (botones, campos, diálogos), nitida/ (estados, sello, línea de tiempo, escáner),
+                    brand/ (logo), illustrations/ (registro, eslabón, tacómetro, sello), shell/, landing/
+src/lib/            api.ts (CSRF, X-Workshop-Id), errors.ts (code → mensaje), format.ts (es-CO),
+                    session.tsx, use-query.ts, chain.ts, demo/ (backend simulado)
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Comandos
+
+```bash
+corepack pnpm lint
+npx tsc --noEmit
+corepack pnpm build
+```
