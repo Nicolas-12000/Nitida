@@ -59,7 +59,7 @@ class WorkshopsApiImpl implements WorkshopsApi {
     public SignedHash sign(UUID workshopId, byte[] data) {
         SigningKey key = keys.findFirstByWorkshopIdAndRetiredAtIsNullOrderByCreatedAtDesc(workshopId)
                 .orElseThrow(() -> new IllegalStateException("workshop has no active signing key"));
-        byte[] pkcs8 = cipher.open(key.getEncryptedPrivateKey(), key.getNonce(), workshopId);
+        byte[] pkcs8 = cipher.open(key.getEncryptedPrivateKey(), key.getNonce(), workshopId, key.getKekVersion());
         return new SignedHash(key.getId(), Ed25519.sign(pkcs8, data));
     }
 

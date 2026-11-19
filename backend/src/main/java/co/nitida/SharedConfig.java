@@ -12,8 +12,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 class SharedConfig {
     /** Encrypts secrets at rest: workshop signing keys and users' TOTP secrets. */
     @Bean
-    KeyCipher keyCipher(@Value("${nitida.signing.kek}") String kek, @Value("${nitida.signing.kek-version}") int version) {
-        return new KeyCipher(kek, version);
+    KeyCipher keyCipher(@Value("${nitida.signing.kek}") String kek, @Value("${nitida.signing.kek-version:1}") int version,
+                        @Value("${nitida.signing.kek-previous:}") String previous,
+                        @Value("${nitida.signing.kek-previous-version:0}") int previousVersion) {
+        return new KeyCipher(kek, version, previous, previousVersion);
     }
 
     @Bean
