@@ -144,6 +144,8 @@ jobs:
       - name: Enable pnpm
         run: corepack enable
       - run: pnpm install --frozen-lockfile --ignore-scripts
+      # LayoutProps/PageProps are global types Next generates; without typegen tsc cannot see them.
+      - run: pnpm exec next typegen
       - run: pnpm exec tsc --noEmit
       - run: pnpm lint
 
@@ -227,6 +229,12 @@ jobs:
     if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    # Job level, not step level: every `docker compose` call (start, logs on failure) interpolates these.
+    env:
+      POSTGRES_PASSWORD: ci-only-password
+      NITIDA_SIGNING_KEK: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      NITIDA_COOKIE_SECURE: 'false'
+      BACKEND_IMAGE: nitida-backend:ci
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -248,11 +256,7 @@ jobs:
           severity-cutoff: critical
           only-fixed: true
       - name: Start the stack for DAST
-        env:
-          POSTGRES_PASSWORD: ci-only-password
-          NITIDA_SIGNING_KEK: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
-          NITIDA_COOKIE_SECURE: 'false'
-          BACKEND_IMAGE: nitida-backend:ci
+        id: stack
         run: |
           docker compose up -d postgres backend
           curl --fail --silent --retry 40 --retry-delay 3 --retry-connrefused http://localhost:8080/actuator/health
@@ -264,7 +268,8 @@ jobs:
           allow_issue_writing: false
           fail_action: true
       - name: Stack logs on failure
-        if: failure()
+        # Only when the stack was started: a failed scan before it has no containers to show.
+        if: failure() && steps.stack.outcome != 'skipped'
         run: docker compose logs --no-color --tail=200 backend
 
   # The one check to require in branch protection: green when every job that had to run passed (skipped is fine).

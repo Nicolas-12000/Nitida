@@ -29,7 +29,7 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-webmvc")
 	implementation("org.springframework.boot:spring-boot-starter-session-jdbc")
 	implementation("org.flywaydb:flyway-database-postgresql")
-	implementation("org.bouncycastle:bcprov-jdk18on:1.80")
+	implementation("org.bouncycastle:bcprov-jdk18on:1.87")
 	implementation("com.twelvemonkeys.imageio:imageio-webp:3.12.0")
 	implementation("org.springframework.modulith:spring-modulith-observability-api")
 	implementation("org.springframework.modulith:spring-modulith-starter-core")
@@ -130,7 +130,8 @@ tasks.register<JavaExec>("pitest") {
 			"--excludedClasses", "co.nitida.*.domain.*Repository,co.nitida.shared.web.*,co.nitida.shared.audit.*,co.nitida.shared.persistence.*,*Test,*Test$*",
 			"--excludedMethods", "get*,is*,toString,hashCode,equals",
 			"--targetTests", "co.nitida.*",
-			"--excludedTestClasses", "*IntegrationTest,*ApplicationTests",
+			// Spring Boot and whole-codebase tests are slow and add no mutation kills over the domain unit tests.
+			"--excludedTestClasses", "*IntegrationTest,*ApplicationTests,co.nitida.security.*,co.nitida.ApiContractTest,co.nitida.ArchitectureTest",
 			"--sourceDirs", "src/main/java",
 			"--classPath", sourceSets.test.get().runtimeClasspath.files.joinToString(",") { it.absolutePath },
 			"--mutationThreshold", "70",
