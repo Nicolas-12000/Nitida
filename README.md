@@ -13,7 +13,7 @@ Requisitos: JDK 21 y Docker (solo para `docker compose`).
 
 ```bash
 cp .env.example .env        # y completa los tres valores (abajo)
-docker compose up           # postgres, backend (:8080) y mailpit (:8025)
+docker compose up           # postgres, backend (:8080) y mailpit (SMTP :1025, bandeja :8025)
 ```
 
 | Variable | Qué es |
@@ -86,4 +86,4 @@ Cada entrada del historial se encadena con la anterior (SHA-256 sobre JSON canó
 
 ## Límites conocidos
 
-Ver el checklist de [`backend/planmvp.md`](backend/planmvp.md). Los más relevantes: sin códigos de recuperación de TOTP, y límite de intentos en memoria (una instancia).
+Ver el checklist de [`backend/planmvp.md`](backend/planmvp.md). El límite de intentos es en memoria (una instancia). Las invitaciones y la recuperación de contraseña salen por Mailpit. Para rotar la KEK, la nueva queda en `NITIDA_SIGNING_KEK` (y se sube `NITIDA_SIGNING_KEK_VERSION`) y la anterior en `NITIDA_SIGNING_KEK_PREVIOUS` con su versión: las llaves ya selladas siguen abriendo.

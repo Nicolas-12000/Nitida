@@ -84,9 +84,9 @@ Marcado = hecho y con prueba. Orden sugerido para la entrega: RLS → contrato �
 ### Autenticación y sesión (§10)
 - [x] Argon2id, sesión JDBC 8 h, CSRF por cookie + encabezado, rotación de sesión, bloqueo progresivo, logout
 - [x] Cookie `SESSION` con `HttpOnly` + `SameSite=Lax` (estaba sin ellas; corregido y probado en `OwaspSecurityTest`)
-- [x] TOTP (RFC 6238): obligatorio para el administrador (sin él no tiene privilegios de `/admin`), opcional para el resto; secreto cifrado con la KEK y código de un solo uso. ADR 0011. Falta: códigos de recuperación
-- [ ] Envío de correo de invitaciones por Mailpit (hoy el token vuelve una vez al dueño: decisión 8)
-- [ ] Recuperación de contraseña (citada en §10, sin UC en §6)
+- [x] TOTP (RFC 6238): obligatorio para el administrador (sin él no tiene privilegios de `/admin`), opcional para el resto; secreto cifrado con la KEK y código de un solo uso. Al confirmar se entregan 8 códigos de recuperación, de un solo uso. ADR 0011
+- [x] Envío de correo de invitaciones y de recuperación por SMTP (Mailpit en `docker compose`; el perfil de pruebas captura el mensaje). El código no vuelve en la respuesta. ADR 0008
+- [x] Recuperación de contraseña (§10, sin UC en §6): `POST /auth/password/forgot` responde igual haya o no cuenta; `POST /auth/password/reset` cambia la clave. El código vence en 1 hora y es de un solo uso
 - [x] Límite por IP detrás de proxy: `server.forward-headers-strategy=native` (solo proxies internos); `ForwardedHeadersTest`
 - [x] Límite al registro de usuarios por IP (`nitida.register.ip-limit`, 10 por hora): cada registro calcula un Argon2id
 
@@ -100,10 +100,10 @@ Marcado = hecho y con prueba. Orden sugerido para la entrega: RLS → contrato �
 
 ### Pruebas y calidad (§15)
 - [x] P1–P8, P11, P12; D3, D4, D5; límites de §15.3; concurrencia de entregas y seriales
-- [ ] P9 como `@Property` jqwik (hoy: caminata aleatoria con semilla en integración). Cuesta porque la suma vive en una consulta SQL, no en una función pura
-- [ ] P10 como `@Property` jqwik (seriales en varias motos); mismo motivo
+- [x] P9 como `@Property` jqwik (`CashExpected`): el esperado es la suma del efectivo no anulado. La ventana del día sigue en la consulta; la mezcla de métodos y anulaciones vive en la función
+- [x] P10 como `@Property` jqwik (`ActiveSerials`): ninguna secuencia de altas y retiros deja un serial activo en dos motos
 - [x] D2 Ed25519 JDK vs BouncyCastle en los dos sentidos (`Ed25519DifferentialTest`, propiedades jqwik)
-- [ ] D1 verificador independiente en Python (necesita exportar cadenas como fixtures y `pip install cryptography` en el CI)
+- [x] D1 verificador independiente en Python (`scripts/verify_chains.py`, rfc8785 + cryptography). `IndependentVerifierTest` exporta las cadenas y el CI le prepara un venv
 - [x] PIT 91 % global (umbral del build 85 %), `history.domain` ≥ 85 %, alcance `shared` + todos los `*.domain` (incluye `orders` y `cashdesk`)
 - [x] JaCoCo 96,5 % de líneas y 82 % de ramas (umbrales del build 90 % y 75 %)
 
@@ -112,15 +112,15 @@ Marcado = hecho y con prueba. Orden sugerido para la entrega: RLS → contrato �
 - [x] Workflow sin `hashFiles` en `if` de job; detección de cambios (backend/frontend) para no correr PIT ni la imagen en vano
 - [x] Paso de Sonar que de verdad corre cuando hay `SONAR_TOKEN` (antes la condición siempre era falsa) con Quality Gate
 - [x] Check único `CI passed` para exigir en la protección de rama
-- [ ] Configurar `SONAR_TOKEN` (secret) y `SONAR_HOST_URL` (variable) en GitHub, y captura del Quality Gate en verde
-- [ ] Pasar `actionlint` (no se pudo correr local: sin Docker en WSL)
+- [ ] Configurar `SONAR_TOKEN` (secret) y `SONAR_HOST_URL` (variable) en GitHub, y captura del Quality Gate en verde. Vive en la configuración del repositorio, no en el código
+- [x] `actionlint` 1.7.7 como job del CI (no repite el build). En local corre el binario, sin Docker
 - [x] CI sin duplicados: un solo SAST (CodeQL), sin `dependency-review` (Trivy + verificación de Gradle lo cubren), SBOM solo de la imagen y solo en `main`, Trivy sin el escáner de secretos (gitleaks ya lo hace), caché de capas de Docker con la capa de dependencias separada, caché de pnpm, clon superficial cuando no corre Sonar, Dependabot agrupado
 - [x] Los hallazgos de Trivy sobre la imagen salen como una anotación cada uno (legibles en la interfaz y por API)
-- [ ] Los PR de Dependabot de Gradle fallan porque `verification-metadata.xml` no se actualiza solo: hay que correr `./gradlew --write-verification-metadata sha256 help` en la rama
+- [ ] Los PR de Dependabot de Gradle piden `./gradlew --write-verification-metadata sha256 help` en la rama. Un workflow que haga commit y push vuelve a disparar este CI, así que no está
 
 ### Documentación y datos (§16)
 - [x] `README.md` (raíz): arranque, variables, cómo correr Sonar y PIT, firma = integridad, no no-repudio
-- [x] `docs/decisiones/`: 13 ADRs
+- [x] `docs/decisiones/`: 15 ADRs
 - [x] Semilla del perfil `dev` (`DevSeed`, por la API HTTP, solo con `NITIDA_DEV_SEED_PASSWORD`): 1 admin, 2 talleres (uno verificado), 5 motos con historial; `DevSeedIntegrationTest`
 
 ### Fuera del MVP (correcto que no estén)
@@ -205,7 +205,7 @@ En CI: ZAP pasivo contra cada operación de `docs/openapi.yaml` (`.zap/plan.yaml
 - [x] `./gradlew build` en verde, incluidos `Modulith verify` y todas las reglas ArchUnit (450 pruebas).
 - [x] Consola de VS Code sin errores ni advertencias.
 - [x] Cobertura JaCoCo ≥ 85 % de líneas (96 %); PIT ≥ 75 % (91 %, `history.domain` ≥ 85 %).
-- [ ] Propiedades P1–P12 y límites de §15.3 cubiertos.
+- [x] Propiedades P1–P12 y límites de §15.3 cubiertos. P9 y P10 quedaron como `@Property`.
 - [ ] Quality Gate de SonarQube en verde, con captura.
 - [x] `docs/owasp-top10.md` completo, con una prueba por categoría.
 - [ ] Pipeline completo en verde: gitleaks, Semgrep/CodeQL, SBOM, Trivy, ZAP, cosign.
@@ -213,11 +213,9 @@ En CI: ZAP pasivo contra cada operación de `docs/openapi.yaml` (`.zap/plan.yaml
 
 ## Foco de revisión (lo que la spec implica y ninguna tarea prueba todavía)
 
-- El diagnóstico libre puede llevar datos personales escritos por el mecánico (RN-22). Hoy no hay filtro: documentarlo y pedirle al frontend un aviso en la UI.
-- Si el taller queda suspendido entre el pago y el evento de entrega, la entrada se registra igual. Hay que confirmar el criterio en un ADR.
-- `X-Forwarded-For` detrás de un proxy: el límite por IP hoy usa `remoteAddr`.
-- Reintento de listeners cuando la cadena aún no tiene `INITIAL_REGISTRATION`: se reintenta, pero falta una prueba explícita.
-- Rotación de la KEK (`kek_version`) sin prueba.
+- RN-22 ya filtra el texto público; el aviso mientras se escribe es del frontend.
+- Taller suspendido entre el pago y la entrega: la entrada se registra, con `workshopVerified` según el estado en ese momento. ADR 0015. `HistoryChainStartTest` cubre el reintento si la cadena aún no empezó.
+- Rotación de la KEK: `KeyCipher` abre la versión guardada en la llave y, si hace falta, la anterior. `KeyCipherRotationTest`.
 
 ## Decisiones que se apartan de la spec (a registrar como ADR)
 
@@ -228,6 +226,6 @@ En CI: ZAP pasivo contra cada operación de `docs/openapi.yaml` (`.zap/plan.yaml
 5. El contenido del historial se guarda como texto canónico JCS (exactamente lo que se hashea), no como `jsonb`.
 6. Los índices únicos parciales de seriales y de propietario activo se emulan con una columna anulable + `UNIQUE` (portable entre H2 y Postgres).
 7. Límite de intentos en memoria propio (`RateLimiter`) en lugar de Bucket4j; SBOM con Trivy en lugar del plugin CycloneDX.
-8. Las invitaciones le devuelven el token al dueño una sola vez (por ahora sin correo ni Mailpit).
+8. Las invitaciones y la recuperación de contraseña salen por correo (Mailpit). La respuesta ya no trae el token.
 9. Contrato HTTP en `docs/api.md` (prosa, comprobada por `ApiContractTest`); OpenAPI y Swagger UI solo con el perfil `dev`, cerrados en producción y en las pruebas.
 10. `OWNERSHIP_TRANSFER` lo firma una identidad de plataforma (`WorkshopsApi.PLATFORM_ID`, migración `V13`, llave creada al arrancar), porque ningún taller hizo el traspaso.
