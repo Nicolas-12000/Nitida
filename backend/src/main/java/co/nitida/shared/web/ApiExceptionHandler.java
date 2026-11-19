@@ -28,6 +28,7 @@ class ApiExceptionHandler {
 
     @ExceptionHandler({HttpMessageNotReadableException.class, IllegalArgumentException.class})
     ResponseEntity<ProblemDetail> unreadable(Exception e) {
+        log.debug("bad request", e);
         return problem(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", "La solicitud no es válida");
     }
 
