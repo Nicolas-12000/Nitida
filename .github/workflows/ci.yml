@@ -124,6 +124,12 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+      - name: Python for the independent chain verifier (D1)
+        run: |
+          python3 -m venv "$RUNNER_TEMP/d1"
+          "$RUNNER_TEMP/d1/bin/pip" install rfc8785 cryptography
+          echo "NITIDA_D1_PYTHON=$RUNNER_TEMP/d1/bin/python" >> "$GITHUB_ENV"
+      # PIT reruns the whole suite before mutating. IndependentVerifierTest shells out to that venv.
       - name: PIT mutation score gate
         run: ./gradlew pitest
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
