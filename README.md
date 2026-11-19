@@ -73,7 +73,7 @@ sonar-scanner -Dsonar.host.url=http://localhost:9000 -Dsonar.token=<token>   # d
 
 ### Pipeline (`.github/workflows/ci.yml`)
 
-Detecta qué cambió y solo corre lo necesario, en paralelo. Siempre: gitleaks y Trivy sobre el repositorio. Con cambios en el backend: compilación y pruebas (más Sonar), mutación con PIT, CodeQL Java, imagen (Trivy, Grype, ZAP pasivo sobre el OpenAPI) y SBOM en `main`. Con cambios en el frontend: tipos, lint y CodeQL JavaScript. Un barrido semanal de CodeQL corre aunque no haya commits. El check que se exige en la rama es **`CI passed`**, e incluye CodeQL.
+Detecta qué cambió y solo corre lo necesario, en paralelo. Siempre: gitleaks y Trivy sobre el repositorio (críticas y altas corregibles, incluido el frontend). Con cambios en el backend: compilación y pruebas (más Sonar), mutación con PIT, CodeQL Java, imagen (Trivy sobre lo que se despliega, solo críticas corregibles; ZAP pasivo sobre el OpenAPI, con el proxy en el 8090) y SBOM en `main`. Con cambios en el frontend: tipos, lint y CodeQL JavaScript. Un barrido semanal de CodeQL corre aunque no haya commits. El check que se exige en la rama es **`CI passed`**, e incluye CodeQL.
 
 ## Lo que la firma del historial garantiza (y lo que no)
 

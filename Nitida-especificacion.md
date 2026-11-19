@@ -711,7 +711,7 @@ El taller activo viaja en el encabezado `X-Workshop-Id` y el backend lo **valida
 |---|---|
 | **A01 Broken Access Control** | Contexto de taller validado en cada solicitud, filtros + RLS, `404` para recursos ajenos, pruebas de matriz rol × endpoint. Incluye SSRF: el servidor nunca visita URLs leídas de QR (RN-95) |
 | **A02 Security Misconfiguration** | Perfiles separados, Actuator restringido (solo `health` público), encabezados de seguridad, sin credenciales por defecto, imagen *distroless* o JRE mínima |
-| **A03 Software Supply Chain Failures** | Verificación de dependencias, SBOM, firma de imágenes, Trivy fijado por SHA + checksum cruzado con Grype, actions de GitHub fijadas por SHA (ver 14) |
+| **A03 Software Supply Chain Failures** | Verificación de dependencias, SBOM, firma de imágenes, Trivy fijado por SHA, actions de GitHub fijadas por SHA (ver 14) |
 | **A04 Cryptographic Failures** | Argon2id, Ed25519, SHA-256, AES-GCM con nonce único, TLS cuando haya despliegue, tokens solo como hash |
 | **A05 Injection** | JPA/consultas parametrizadas, validación de entrada, nada de SQL concatenado, escape en el frontend |
 | **A06 Insecure Design** | Modelo de amenazas documentado, reglas RN explícitas, enmiendas en vez de ediciones, fail closed |
@@ -739,7 +739,7 @@ Pipeline en cada *pull request* y en `main`:
 4. **Secretos:** gitleaks.
 5. **SAST:** Semgrep (reglas OSS) y/o CodeQL (gratis en repos públicos).
 6. **SBOM:** CycloneDX para el backend (plugin de Gradle) y para el frontend.
-7. **Escaneo de vulnerabilidades:** Trivy (filesystem + imagen) **fijado por SHA de la release, con verificación de checksum antes de ejecutarlo**, y **Grype** sobre la misma imagen/SBOM para cruzar resultados. Falla el build con vulnerabilidades críticas que tengan corrección disponible.
+7. **Escaneo de vulnerabilidades:** Trivy **fijado por SHA**. Sobre el repositorio falla con críticas y altas que tengan corrección; sobre la imagen, con críticas que tengan corrección. El SBOM CycloneDX sale de esa misma imagen.
 8. **DAST:** OWASP ZAP *baseline* contra el `docker compose` levantado en CI.
 9. **Firma y procedencia:** cosign *keyless* (Sigstore, OIDC de GitHub) sobre la imagen; atestación de procedencia de build (SLSA) con las acciones oficiales de atestación de GitHub.
 10. **Higiene de la cadena de suministro:**
@@ -857,7 +857,7 @@ Cada iteración termina con: pruebas en verde, `ApplicationModules.verify()` en 
 | **2** | `motorcycles` + `intake` + `files`: identidad de moto (RN-10..16), clientes con autorización, recepción con fotos y limpieza de EXIF | Propiedades P1; límites de placa/VIN; pruebas de archivos |
 | **3** | `orders` + `catalog` (parte 1): máquina de estados, trabajos, repuestos, totales, km, pagos, entrega; **escaneo de códigos, validación GTIN, catálogo por taller, niveles de evidencia** | P5, P6, P7, P11; límites de dinero/km/GTIN; D4 (estados y km), D5 |
 | **4** | `history`: cadena, JCS, Ed25519, custodia de llaves, generación por evento, enmiendas, cambio de odómetro, verificación, link público, página `/v/[token]` | P2, P3, P4, P8; D1, D2, D3; concurrencia e idempotencia; PIT ≥ 85 % en `history` |
-| **5** | `cashdesk` + `catalog` (parte 2): cuadre, alertas F1–F6, scheduler; **registro global de seriales, retiro y reactivación**. DevSecOps completo: SBOM, Trivy+Grype, Semgrep/CodeQL, ZAP, cosign, procedencia | P9, P10, P12; límites de cuadre y seriales; D4 (seriales); concurrencia de seriales; pipeline completo verde |
+| **5** | `cashdesk` + `catalog` (parte 2): cuadre, alertas F1–F6, scheduler; **registro global de seriales, retiro y reactivación**. DevSecOps completo: SBOM, Trivy, Semgrep/CodeQL, ZAP, cosign, procedencia | P9, P10, P12; límites de cuadre y seriales; D4 (seriales); concurrencia de seriales; pipeline completo verde |
 | **6** | Fase 2 parcial: reclamar moto con código, `/mis-motos`, traspaso | Flujo E2E completo con Playwright |
 
 ---

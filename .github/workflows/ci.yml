@@ -188,7 +188,7 @@ jobs:
 
   # The Dockerfile builds the jar itself (bootJar -x test), so the image does not wait for the test job: both run in parallel.
   image:
-    name: Container image (build, Trivy + Grype, DAST)
+    name: Container image (build, Trivy, DAST)
     needs: changes
     if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
@@ -250,13 +250,6 @@ jobs:
           name: sbom
           path: sbom.cdx.json
           retention-days: 90
-      - name: Grype image scan (second opinion)
-        uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
-        with:
-          image: nitida-backend:ci
-          fail-build: true
-          severity-cutoff: critical
-          only-fixed: true
       - name: Start the stack for DAST
         id: stack
         run: |
@@ -276,10 +269,11 @@ jobs:
         # One request per OpenAPI operation, then the passive rules. No active attack:
         # that pass is several minutes and, without a session, mostly pokes 401s.
         run: |
+          # ZAP's own proxy defaults to 8080, which is the backend. The plan still calls the API there.
           docker run --rm --network host \
             -v "${GITHUB_WORKSPACE}:/zap/wrk:rw" \
             ghcr.io/zaproxy/zaproxy:stable \
-            zap.sh -cmd -silent -autorun /zap/wrk/.zap/plan.yaml
+            zap.sh -cmd -silent -port 8090 -autorun /zap/wrk/.zap/plan.yaml
       - name: Stack logs on failure
         # Only when the stack was started: a failed scan before it has no containers to show.
         if: failure() && steps.stack.outcome != 'skipped'

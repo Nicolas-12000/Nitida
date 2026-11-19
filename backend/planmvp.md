@@ -170,7 +170,7 @@ Entregable: `docs/owasp-top10.md`, con una tabla **categoría → control → pr
 |---|---|
 | A01 Broken Access Control | Matriz parametrizada **rol × endpoint** de §3.1 (`2xx`/`403`/`404`) que cubre todos los módulos; IDs de otro taller → `404`; el servidor nunca visita URLs leídas de un QR (RN-95) |
 | A02 Security Misconfiguration | Encabezados de seguridad presentes; Actuator expone solo `health`; perfil `prod` sin credenciales por defecto |
-| A03 Supply Chain | CI: dependency verification de Gradle, SBOM, Trivy (por SHA + checksum) y Grype; actions fijadas por SHA |
+| A03 Supply Chain | CI: dependency verification de Gradle, SBOM, Trivy (por SHA, repositorio e imagen); actions fijadas por SHA |
 | A04 Cryptographic Failures | Hash Argon2id; tokens guardados solo como hash; comparación en tiempo constante; nonce único en AES-GCM |
 | A05 Injection | Búsqueda de clientes y placa con `' OR 1=1 --` y unicode raro → sin efecto y `422`; regla ArchUnit de T5 |
 | A06 Insecure Design | Enmiendas en lugar de ediciones; fail closed en la firma |
@@ -208,7 +208,7 @@ En CI: ZAP pasivo contra cada operación de `docs/openapi.yaml` (`.zap/plan.yaml
 - [ ] Propiedades P1–P12 y límites de §15.3 cubiertos.
 - [ ] Quality Gate de SonarQube en verde, con captura.
 - [ ] `docs/owasp-top10.md` completo, con una prueba por categoría.
-- [ ] Pipeline completo en verde: gitleaks, Semgrep/CodeQL, SBOM, Trivy + Grype, ZAP, cosign.
+- [ ] Pipeline completo en verde: gitleaks, Semgrep/CodeQL, SBOM, Trivy, ZAP, cosign.
 - [ ] `docs/api.md` entregado al frontend y la semilla `dev` funcionando con `docker compose up`.
 
 ## Foco de revisión (lo que la spec implica y ninguna tarea prueba todavía)
