@@ -18,8 +18,10 @@ import javax.imageio.stream.ImageInputStream;
  */
 public final class ImageSanitizer {
     public static final int MAX_BYTES = 8 * 1024 * 1024;
-    /** Decompression-bomb guard: a small file can declare a gigantic canvas. */
-    static final long MAX_PIXELS = 40_000_000L;
+    /** Decompression-bomb guard: a small file can declare a gigantic canvas. Above any real camera (a phone is 48-200 MP at most). */
+    static final long MAX_PIXELS = 100_000_000L;
+    /** Photos are decoded already shrunk to this side: a 48 MP photo would otherwise need ~200 MB of heap per upload. */
+    static final int MAX_SIDE = 4096;
 
     private ImageSanitizer() {}
 
@@ -35,8 +37,13 @@ public final class ImageSanitizer {
             ImageReader reader = readers.next();
             try {
                 reader.setInput(in, true, true);
-                if ((long) reader.getWidth(0) * reader.getHeight(0) > MAX_PIXELS) throw invalid();
-                return encodeJpeg(flatten(reader.read(0)));
+                int width = reader.getWidth(0);
+                int height = reader.getHeight(0);
+                if ((long) width * height > MAX_PIXELS) throw invalid();
+                var param = reader.getDefaultReadParam();
+                int step = (Math.max(width, height) + MAX_SIDE - 1) / MAX_SIDE; // 1 when it already fits
+                param.setSourceSubsampling(step, step, 0, 0);
+                return encodeJpeg(flatten(reader.read(0, param)));
             } finally {
                 reader.dispose();
             }

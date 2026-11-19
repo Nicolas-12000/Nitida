@@ -87,18 +87,29 @@ class ImageSanitizerTest {
                 .extracting(e -> ((ApiException) e).code()).isEqualTo("FILE_TOO_LARGE");
     }
 
-    @Test
-    void hugeCanvasInATinyFileIsRejectedBeforeDecoding() throws Exception {
-        var img = new BufferedImage(7000, 7000, BufferedImage.TYPE_BYTE_GRAY);
-        var out = new ByteArrayOutputStream();
-        ImageIO.write(img, "png", out);
-        assertThat(out.size()).isLessThan(ImageSanitizer.MAX_BYTES);
-        assertThatThrownBy(() -> ImageSanitizer.sanitize(out.toByteArray())).isInstanceOf(ApiException.class);
-    }
-
     private static byte[] concat(byte[] a, byte[] b) {
         byte[] r = java.util.Arrays.copyOf(a, a.length + b.length);
         System.arraycopy(b, 0, r, a.length, b.length);
         return r;
+    }
+
+    /** A 48 MP phone photo is a normal upload: it is accepted and shrunk while decoding, not rejected. */
+    @Test
+    void aHugeButLegitimatePhotoIsShrunkInsteadOfRejected() throws Exception {
+        var gray = new BufferedImage(7000, 6000, BufferedImage.TYPE_BYTE_GRAY); // 42 MP, a few KB as PNG
+        var out = new ByteArrayOutputStream();
+        ImageIO.write(gray, "png", out);
+        byte[] clean = ImageSanitizer.sanitize(out.toByteArray());
+        var result = ImageIO.read(new java.io.ByteArrayInputStream(clean));
+        assertThat(Math.max(result.getWidth(), result.getHeight())).isLessThanOrEqualTo(4096);
+    }
+
+    @Test
+    void aCanvasBeyondAnyRealCameraIsStillRejected() throws Exception {
+        var gray = new BufferedImage(12_000, 10_000, BufferedImage.TYPE_BYTE_GRAY); // 120 MP
+        var out = new ByteArrayOutputStream();
+        ImageIO.write(gray, "png", out);
+        assertThatThrownBy(() -> ImageSanitizer.sanitize(out.toByteArray())).isInstanceOf(ApiException.class)
+                .extracting(e -> ((ApiException) e).code()).isEqualTo("INVALID_IMAGE");
     }
 }
