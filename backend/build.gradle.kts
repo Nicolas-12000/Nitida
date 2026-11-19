@@ -50,7 +50,7 @@ dependencies {
 	testImplementation("org.springframework.modulith:spring-modulith-starter-test")
 	testImplementation("org.testcontainers:testcontainers-junit-jupiter")
 	testImplementation("org.testcontainers:testcontainers-postgresql")
-	testImplementation("net.jqwik:jqwik:1.9.2")
+	testImplementation("net.jqwik:jqwik:1.10.2")
 	testImplementation("com.tngtech.archunit:archunit-junit5:1.4.0")
 	testRuntimeOnly("com.h2database:h2")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
