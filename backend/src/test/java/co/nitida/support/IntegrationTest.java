@@ -93,4 +93,20 @@ public abstract class IntegrationTest {
         post("/api/v1/invitations/" + token + "/accept", member, null, null).andReturn();
         return member;
     }
+
+    /** Uploads a tiny valid photo through the real endpoint and returns its id. */
+    protected UUID uploadPhoto(Session s, UUID workshopId) throws Exception {
+        var img = new java.awt.image.BufferedImage(8, 8, java.awt.image.BufferedImage.TYPE_INT_RGB);
+        var out = new java.io.ByteArrayOutputStream();
+        javax.imageio.ImageIO.write(img, "jpg", out);
+        var res = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/api/v1/files")
+                .part(new org.springframework.mock.web.MockPart("file", "p.jpg", out.toByteArray()))
+                .with(csrf()).cookie(s.cookie()).header("X-Workshop-Id", workshopId.toString()));
+        return UUID.fromString(json(res).get("fileId").asString());
+    }
+
+    protected void verifyWorkshop(Session admin, UUID workshopId) throws Exception {
+        post("/api/v1/admin/workshops/" + workshopId + "/status", admin, null,
+                Map.of("status", "VERIFIED", "evidence", "Visita presencial de verificación")).andReturn();
+    }
 }

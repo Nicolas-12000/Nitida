@@ -73,6 +73,12 @@ class MotorcyclesApiImpl implements MotorcyclesApi {
 
     @Override
     @Transactional(readOnly = true)
+    public java.util.Map<UUID, MotorcycleInfo> findAll(java.util.Collection<UUID> ids) {
+        return motorcycles.findAllById(ids).stream().collect(java.util.stream.Collectors.toMap(Motorcycle::getId, MotorcyclesApiImpl::info));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Optional<MotorcycleInfo> lookup(String plate, String vin) {
         String normVin = VehicleIdentifiers.normalize(vin);
         String normPlate = VehicleIdentifiers.normalize(plate);

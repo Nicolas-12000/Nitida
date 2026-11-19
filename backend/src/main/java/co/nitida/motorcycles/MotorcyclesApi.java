@@ -21,6 +21,9 @@ public interface MotorcyclesApi {
 
     Optional<MotorcycleInfo> find(UUID motorcycleId);
 
+    /** Batch lookup so list screens do not query once per row. */
+    java.util.Map<UUID, MotorcycleInfo> findAll(java.util.Collection<UUID> motorcycleIds);
+
     Optional<MotorcycleInfo> lookup(String plate, String vin);
 
     boolean customerBelongsTo(UUID customerId, UUID workshopId);
