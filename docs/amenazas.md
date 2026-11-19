@@ -4,7 +4,7 @@ Resumen de la spec §13.1 con el estado real del backend. «Control» es lo que 
 
 | Amenaza | Ejemplo | Control | Prueba | Falta |
 |---|---|---|---|---|
-| **S**uplantación | Robo de sesión, fuerza bruta | Argon2id, bloqueo por cuenta e IP, cookie `HttpOnly` + `SameSite=Lax`, CSRF, TOTP obligatorio para el administrador | `AuthIntegrationTest`, `OwaspSecurityTest`, `ForwardedHeadersTest`, `TotpIntegrationTest` | Códigos de recuperación de TOTP |
+| **S**uplantación | Robo de sesión, fuerza bruta | Argon2id, bloqueo por cuenta e IP, cookie `HttpOnly` + `SameSite=Lax`, CSRF, TOTP obligatorio para el administrador, códigos de recuperación de un solo uso | `AuthIntegrationTest`, `OwaspSecurityTest`, `ForwardedHeadersTest`, `TotpIntegrationTest` | Dispositivos de confianza |
 | **T**amper (manipulación) | Editar una entrada del historial en la base | Cadena de hashes, firma Ed25519, verificación que falla cerrado | `ChainTest`, `HistoryIntegrationTest` | Publicar las cabezas de cadena (fase 2): hoy quien controla la base y las llaves podría reescribir todo |
 | Manipulación | Un taller crea registros falsos | Verificación de talleres, enmiendas visibles, evidencia fotográfica, `workshopVerified` dentro del contenido firmado | `HistoryIntegrationTest.entriesFromAVerifiedWorkshop…` | Reputación |
 | **R**epudio | «Yo no registré eso» | Auditoría de solo-insertar, firma por taller | `HistoryIntegrationTest` | Firma desde el dispositivo del taller (WebAuthn): el servidor guarda las llaves |

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import co.nitida.identity.application.Mailbox;
 import co.nitida.support.IntegrationTest;
 import java.util.Map;
 import java.util.UUID;
@@ -54,7 +55,8 @@ class WorkshopsIntegrationTest extends IntegrationTest {
         var mechanic = registerAndLogin();
         var inv = post("/api/v1/workshops/" + ws + "/invitations", owner, ws, Map.of("email", mechanic.email(), "role", "MECHANIC"))
                 .andExpect(status().isCreated());
-        String token = json(inv).get("token").asString();
+        String token = Mailbox.tokenOf(mailbox.last().text());
+        assertThat(inv.andReturn().getResponse().getContentAsString()).doesNotContain(token);
         // token is never stored in clear
         assertThat(jdbc.sql("SELECT count(*) FROM identity.invitation WHERE token_hash = ?").param(token).query(Long.class).single()).isZero();
 
@@ -69,8 +71,8 @@ class WorkshopsIntegrationTest extends IntegrationTest {
         UUID ws = createWorkshop(owner);
         var invited = registerAndLogin();
         var other = registerAndLogin();
-        String token = json(post("/api/v1/workshops/" + ws + "/invitations", owner, ws,
-                Map.of("email", invited.email(), "role", "FRONT_DESK"))).get("token").asString();
+        post("/api/v1/workshops/" + ws + "/invitations", owner, ws, Map.of("email", invited.email(), "role", "FRONT_DESK")).andReturn();
+        String token = Mailbox.tokenOf(mailbox.last().text());
         post("/api/v1/invitations/" + token + "/accept", other, null, null).andExpect(status().isNotFound());
     }
 
@@ -79,8 +81,8 @@ class WorkshopsIntegrationTest extends IntegrationTest {
         var owner = registerAndLogin();
         UUID ws = createWorkshop(owner);
         var invited = registerAndLogin();
-        String token = json(post("/api/v1/workshops/" + ws + "/invitations", owner, ws,
-                Map.of("email", invited.email(), "role", "MECHANIC"))).get("token").asString();
+        post("/api/v1/workshops/" + ws + "/invitations", owner, ws, Map.of("email", invited.email(), "role", "MECHANIC")).andReturn();
+        String token = Mailbox.tokenOf(mailbox.last().text());
         jdbc.sql("UPDATE identity.invitation SET expires_at = ? WHERE workshop_id = ?")
                 .params(java.sql.Timestamp.from(java.time.Instant.now().minusSeconds(1)), ws).update();
         post("/api/v1/invitations/" + token + "/accept", invited, null, null).andExpect(status().isNotFound());

@@ -5,10 +5,13 @@ import co.nitida.identity.IdentityApi;
 import co.nitida.identity.application.ConfirmTotpUseCase;
 import co.nitida.identity.application.LoginUseCase;
 import co.nitida.identity.application.RegisterUserUseCase;
+import co.nitida.identity.application.RequestPasswordResetUseCase;
+import co.nitida.identity.application.ResetPasswordUseCase;
 import co.nitida.identity.application.SetupTotpUseCase;
 import co.nitida.shared.ApiException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -30,6 +33,10 @@ class AuthHandler {
 
     record CodeRequest(String code) {}
 
+    record EmailRequest(String email) {}
+
+    record ResetPasswordRequest(String token, String password) {}
+
     record MeResponse(UUID id, String email, String displayName, boolean platformAdmin, boolean totpEnabled,
                       boolean totpSetupRequired, List<IdentityApi.WorkshopRole> memberships) {}
 
@@ -39,15 +46,20 @@ class AuthHandler {
 
     private final SetupTotpUseCase setupTotp;
     private final ConfirmTotpUseCase confirmTotp;
+    private final RequestPasswordResetUseCase requestReset;
+    private final ResetPasswordUseCase resetPassword;
     private final boolean totpRequired;
 
     AuthHandler(RegisterUserUseCase register, LoginUseCase login, IdentityApi identity, SetupTotpUseCase setupTotp,
-                ConfirmTotpUseCase confirmTotp, @Value("${nitida.admin.totp-required:true}") boolean totpRequired) {
+                ConfirmTotpUseCase confirmTotp, RequestPasswordResetUseCase requestReset, ResetPasswordUseCase resetPassword,
+                @Value("${nitida.admin.totp-required:true}") boolean totpRequired) {
         this.register = register;
         this.login = login;
         this.identity = identity;
         this.setupTotp = setupTotp;
         this.confirmTotp = confirmTotp;
+        this.requestReset = requestReset;
+        this.resetPassword = resetPassword;
         this.totpRequired = totpRequired;
     }
 
@@ -77,8 +89,20 @@ class AuthHandler {
     /** Turning TOTP on is what lifts the "enroll first" restriction of a platform admin's current session. */
     ServerResponse confirmTotp(ServerRequest req) throws Exception {
         var user = AuthenticatedUser.current();
-        boolean admin = confirmTotp.execute(user.userId(), req.body(CodeRequest.class).code());
-        if (admin) startSession(req.servletRequest(), identity.findUser(user.userId()).orElseThrow(ApiException::forbidden), true, false);
+        var result = confirmTotp.execute(user.userId(), req.body(CodeRequest.class).code());
+        if (result.platformAdmin()) startSession(req.servletRequest(), identity.findUser(user.userId()).orElseThrow(ApiException::forbidden), true, false);
+        return ServerResponse.ok().header("Cache-Control", "no-store").body(Map.of("recoveryCodes", result.recoveryCodes()));
+    }
+
+    ServerResponse forgotPassword(ServerRequest req) throws Exception {
+        var body = req.body(EmailRequest.class);
+        requestReset.execute(body.email(), req.servletRequest().getRemoteAddr());
+        return ServerResponse.noContent().build();
+    }
+
+    ServerResponse resetPassword(ServerRequest req) throws Exception {
+        var body = req.body(ResetPasswordRequest.class);
+        resetPassword.execute(body.token(), body.password());
         return ServerResponse.noContent().build();
     }
 

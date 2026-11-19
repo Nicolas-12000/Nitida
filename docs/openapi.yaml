@@ -132,6 +132,80 @@ paths:
           $ref: '#/components/responses/InternalError'
 
 
+  /api/v1/auth/password/forgot:
+    post:
+      tags: [auth]
+      operationId: forgotPassword
+      summary: Pedir un código para cambiar la contraseña
+      description: |
+        Responde `204` haya o no una cuenta con ese correo. Si la hay, el código llega por correo y vence en una hora.
+        En desarrollo el correo lo recibe Mailpit.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EmailRequest' }
+      security: []
+      responses:
+        '204':
+          description: Solicitud aceptada
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/auth/password/reset:
+    post:
+      tags: [auth]
+      operationId: resetPassword
+      summary: Cambiar la contraseña con el código del correo
+      description: |
+        `404` es la misma respuesta para un código inexistente, vencido o ya usado. `422 WEAK_PASSWORD` si la nueva
+        contraseña no cumple la política; en ese caso el código sigue vigente.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ResetPasswordRequest' }
+      security: []
+      responses:
+        '204':
+          description: Contraseña cambiada
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
   /api/v1/auth/totp/setup:
     post:
       tags: [auth]
@@ -188,8 +262,11 @@ paths:
         - sessionCookie: []
           csrfToken: []
       responses:
-        '204':
-          description: TOTP activado
+        '200':
+          description: TOTP activado; los códigos de recuperación se muestran una sola vez
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TotpConfirmResponse' }
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -454,7 +531,7 @@ paths:
         - workshopId: []
       responses:
         '201':
-          description: Token de invitación (una vez)
+          description: Invitación creada; el código va por correo y no vuelve en la respuesta
           content:
             application/json:
               schema: { $ref: '#/components/schemas/InviteResponse' }
@@ -751,9 +828,6 @@ paths:
           $ref: '#/components/responses/RateLimited'
         '500':
           $ref: '#/components/responses/InternalError'
-
-
-  /api/v1/intakes:
     get:
       tags: [intake]
       operationId: listOpenIntakes
@@ -867,9 +941,6 @@ paths:
           $ref: '#/components/responses/RateLimited'
         '500':
           $ref: '#/components/responses/InternalError'
-
-
-  /api/v1/customers:
     get:
       tags: [customers]
       operationId: searchCustomers
@@ -1118,9 +1189,6 @@ paths:
           $ref: '#/components/responses/RateLimited'
         '500':
           $ref: '#/components/responses/InternalError'
-
-
-  /api/v1/orders:
     get:
       tags: [orders]
       operationId: listOrders
@@ -1198,9 +1266,6 @@ paths:
           $ref: '#/components/responses/RateLimited'
         '500':
           $ref: '#/components/responses/InternalError'
-
-
-  /api/v1/orders/{id}:
     patch:
       tags: [orders]
       operationId: editOrder
@@ -2627,10 +2692,9 @@ components:
         password: { type: string }
         totp:
           type: string
-          pattern: '^[0-9]{6}$'
           description: |
-            Código de 6 dígitos de la aplicación de autenticación. Obligatorio solo si la cuenta ya activó TOTP:
-            sin él, con la contraseña correcta, responde `401 TOTP_REQUIRED` (el frontend muestra entonces el campo).
+            Código de 6 dígitos de la aplicación de autenticación, o uno de los códigos de recuperación (una sola vez).
+            Obligatorio solo si la cuenta ya activó TOTP: sin él, con la contraseña correcta, responde `401 TOTP_REQUIRED`.
             Un código no se puede usar dos veces. Código incorrecto → `401 INVALID_CREDENTIALS`.
 
     TotpSetupResponse:
@@ -2644,6 +2708,28 @@ components:
       required: [code]
       properties:
         code: { type: string, pattern: '^[0-9]{6}$' }
+
+    TotpConfirmResponse:
+      type: object
+      required: [recoveryCodes]
+      properties:
+        recoveryCodes:
+          type: array
+          items: { type: string }
+          description: Ocho códigos de un solo uso. Se muestran una sola vez; cada uno sustituye al código de la app en el login.
+
+    EmailRequest:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email }
+
+    ResetPasswordRequest:
+      type: object
+      required: [token, password]
+      properties:
+        token: { type: string }
+        password: { type: string, minLength: 12 }
 
     WorkshopRole:
       type: object
@@ -2707,9 +2793,8 @@ components:
     InviteResponse:
       type: object
       properties:
-        token:
-          type: string
-          description: Token de invitación; se muestra una sola vez.
+        invitationId: { type: string, format: uuid }
+        expiresAt: { type: string, format: date-time, description: 'Vence a las 72 horas. El código llega por correo.' }
 
     AdminStatusRequest:
       type: object

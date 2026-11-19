@@ -1,13 +1,18 @@
 package co.nitida.identity.application;
 
 import co.nitida.identity.IdentityApi.UserSummary;
+import co.nitida.identity.domain.AppUser;
 import co.nitida.identity.domain.AppUserRepository;
 import co.nitida.identity.domain.Totp;
+import co.nitida.identity.domain.TotpRecoveryCodeRepository;
 import co.nitida.shared.ApiException;
 import co.nitida.shared.RateLimiter;
 import co.nitida.shared.crypto.KeyCipher;
+import co.nitida.shared.crypto.SecureTokens;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
+import java.util.Locale;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -23,6 +28,7 @@ public class LoginUseCase {
     private static final String GENERIC = "Correo o contraseña incorrectos";
 
     private final AppUserRepository users;
+    private final TotpRecoveryCodeRepository recoveryCodes;
     private final KeyCipher cipher;
     private final boolean totpRequired;
     private final PasswordEncoder encoder;
@@ -32,10 +38,11 @@ public class LoginUseCase {
     /** Hash of a random password: lets us spend the same time when the account does not exist. */
     private final String dummyHash;
 
-    LoginUseCase(AppUserRepository users, PasswordEncoder encoder, Clock clock, KeyCipher cipher,
+    LoginUseCase(AppUserRepository users, TotpRecoveryCodeRepository recoveryCodes, PasswordEncoder encoder, Clock clock, KeyCipher cipher,
                  @org.springframework.beans.factory.annotation.Value("${nitida.admin.totp-required:true}") boolean totpRequired,
                  @org.springframework.beans.factory.annotation.Value("${nitida.login.ip-limit:10}") int ipLimit) {
         this.users = users;
+        this.recoveryCodes = recoveryCodes;
         this.cipher = cipher;
         this.totpRequired = totpRequired;
         this.encoder = encoder;
@@ -73,14 +80,25 @@ public class LoginUseCase {
             byte[] secret = cipher.open(user.getTotpSecret(), user.getTotpNonce(), user.getId());
             var step = Totp.verify(secret, c.totp(), now.getEpochSecond(), user.getTotpLastStep());
             if (step.isEmpty()) {
-                user.registerFailure(now); // a wrong code counts toward the progressive lock like a wrong password
-                throw invalid();
+                if (!consumeRecoveryCode(user, c.totp(), now)) {
+                    user.registerFailure(now); // a wrong code counts toward the progressive lock like a wrong password
+                    throw invalid();
+                }
+            } else {
+                user.acceptTotpStep(step.getAsLong());
             }
-            user.acceptTotpStep(step.getAsLong());
         }
         user.registerSuccess();
         var summary = IdentityApiImpl.summary(user);
         return new Result(summary, summary.platformAdmin() && (summary.totpEnabled() || !totpRequired));
+    }
+
+    /** A recovery code stands in for the authenticator once. A 6-digit miss does not touch this table. */
+    private boolean consumeRecoveryCode(AppUser user, String code, Instant now) {
+        String normalized = code.strip().toUpperCase(Locale.ROOT);
+        if (normalized.length() < 8) return false;
+        var row = recoveryCodes.findByUserIdAndCodeHashAndUsedAtIsNull(user.getId(), SecureTokens.hash(normalized));
+        return row.isPresent() && row.get().consume(now);
     }
 
     private static ApiException invalid() {

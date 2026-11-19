@@ -3,6 +3,8 @@ package co.nitida.support;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 
+import co.nitida.identity.application.Mailbox;
+import co.nitida.identity.infrastructure.CapturingMailbox;
 import co.nitida.shared.Json;
 import jakarta.servlet.http.Cookie;
 import java.util.Map;
@@ -29,6 +31,7 @@ public abstract class IntegrationTest {
 
     @Autowired protected MockMvc mvc;
     @Autowired protected JdbcClient jdbc;
+    @Autowired protected CapturingMailbox mailbox;
 
     public record Session(Cookie cookie, UUID userId, String email) {}
 
@@ -98,9 +101,9 @@ public abstract class IntegrationTest {
     /** Invites an email with a role and accepts it with a fresh user; returns that user's session. */
     protected Session addMember(Session owner, UUID workshopId, String role) throws Exception {
         var member = registerAndLogin();
-        var inv = post("/api/v1/workshops/" + workshopId + "/invitations", owner, workshopId,
-                Map.of("email", member.email(), "role", role));
-        String token = json(inv).get("token").asString();
+        post("/api/v1/workshops/" + workshopId + "/invitations", owner, workshopId,
+                Map.of("email", member.email(), "role", role)).andReturn();
+        String token = Mailbox.tokenOf(mailbox.last().text());
         post("/api/v1/invitations/" + token + "/accept", member, null, null).andReturn();
         return member;
     }

@@ -51,7 +51,8 @@ class SecurityConfig {
             .addFilterAfter(workshopFilter, SecurityContextHolderFilter.class)
             .authorizeHttpRequests(a -> a
                     .requestMatchers("/actuator/health/**", "/actuator/health").permitAll()
-                    .requestMatchers("/api/v1/public/**", "/api/v1/auth/register", "/api/v1/auth/login").permitAll()
+                    .requestMatchers("/api/v1/public/**", "/api/v1/auth/register", "/api/v1/auth/login",
+                            "/api/v1/auth/password/forgot", "/api/v1/auth/password/reset").permitAll()
                     .requestMatchers("/api/v1/admin/**").hasRole("PLATFORM_ADMIN")
                     .requestMatchers("/api/**").authenticated()
                     .anyRequest().denyAll())

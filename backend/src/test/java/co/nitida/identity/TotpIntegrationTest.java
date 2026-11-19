@@ -42,7 +42,8 @@ class TotpIntegrationTest extends IntegrationTest {
         post("/api/v1/auth/totp/confirm", s, null, Map.of("code", "000000")).andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.code").value("INVALID_TOTP"));
         get("/api/v1/admin/workshops", s, null).andExpect(status().isForbidden());
 
-        post("/api/v1/auth/totp/confirm", s, null, Map.of("code", codeFor(secret, 0))).andExpect(status().isNoContent());
+        var confirmed = post("/api/v1/auth/totp/confirm", s, null, Map.of("code", codeFor(secret, 0))).andExpect(status().isOk());
+        assertThat(json(confirmed).get("recoveryCodes").size()).isEqualTo(8);
         get("/api/v1/admin/workshops", s, null).andExpect(status().isOk()); // same session, privileges granted now
         get("/api/v1/auth/me", s, null).andExpect(jsonPath("$.totpEnabled").value(true)).andExpect(jsonPath("$.totpSetupRequired").value(false));
     }
@@ -75,7 +76,7 @@ class TotpIntegrationTest extends IntegrationTest {
         var user = registerAndLogin();
         assertThat(json(get("/api/v1/auth/me", user, null)).get("totpSetupRequired").asBoolean()).as("optional for ordinary users").isFalse();
         String secret = json(post("/api/v1/auth/totp/setup", user, null, null).andExpect(status().isOk())).get("secret").asString();
-        post("/api/v1/auth/totp/confirm", user, null, Map.of("code", codeFor(secret, 0))).andExpect(status().isNoContent());
+        post("/api/v1/auth/totp/confirm", user, null, Map.of("code", codeFor(secret, 0))).andExpect(status().isOk());
         loginWith(user.email(), null).andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("TOTP_REQUIRED"));
         loginWith(user.email(), codeFor(secret, 1)).andExpect(status().isOk());
     }
@@ -109,5 +110,16 @@ class TotpIntegrationTest extends IntegrationTest {
         post("/api/v1/auth/totp/setup", user, null, null).andExpect(status().isOk());
         for (int i = 0; i < 5; i++) post("/api/v1/auth/totp/confirm", user, null, Map.of("code", "00000" + i)).andExpect(status().isUnprocessableContent());
         post("/api/v1/auth/totp/confirm", user, null, Map.of("code", "000009")).andExpect(status().isTooManyRequests());
+    }
+
+    @Test
+    void aRecoveryCodeLogsInOnceAndThenIsDead() throws Exception {
+        var user = registerAndLogin();
+        String secret = json(post("/api/v1/auth/totp/setup", user, null, null)).get("secret").asString();
+        String code = json(post("/api/v1/auth/totp/confirm", user, null, Map.of("code", codeFor(secret, 0))).andExpect(status().isOk()))
+                .get("recoveryCodes").get(0).asString();
+        loginWith(user.email(), code.toLowerCase()).andExpect(status().isOk());
+        loginWith(user.email(), code).andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"));
+        assertThat(jdbc.sql("SELECT count(*) FROM identity.totp_recovery_code WHERE code_hash = ?").param(code).query(Long.class).single()).isZero();
     }
 }

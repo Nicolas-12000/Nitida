@@ -11,4 +11,4 @@
 - Es opcional para cualquier otra cuenta (la spec lo pide así para el dueño); una vez activo, se exige para esa cuenta.
 - `nitida.admin.totp-required` (por defecto `true`) solo lo relaja el perfil `dev`, para que el frontend no necesite una aplicación de autenticación para explorar.
 
-**Consecuencias.** No hay códigos de recuperación: si el administrador pierde el dispositivo, otro administrador o quien tenga acceso a la base debe desactivarlo (`totp_enabled = false`). Los códigos de recuperación y los dispositivos de confianza quedan como mejora. El límite de la confirmación es en memoria, por instancia.
+**Consecuencias.** Al confirmar, la respuesta trae 8 códigos de recuperación (una sola vez, solo su hash queda guardado). Cada uno sustituye al código de la app en el login y se quema al usarse. Si se pierden el dispositivo y los códigos, otro administrador o quien tenga acceso a la base desactiva TOTP (`totp_enabled = false`). No hay dispositivos de confianza. El límite de la confirmación es en memoria, por instancia.

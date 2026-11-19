@@ -15,6 +15,8 @@ class AuthRoutes {
                 .path("/api/v1", b -> b
                         .POST("/auth/register", auth::register)
                         .POST("/auth/login", auth::login)
+                        .POST("/auth/password/forgot", auth::forgotPassword)
+                        .POST("/auth/password/reset", auth::resetPassword)
                         .GET("/auth/me", auth::me)
                         .POST("/auth/totp/setup", auth::setupTotp)
                         .POST("/auth/totp/confirm", auth::confirmTotp)

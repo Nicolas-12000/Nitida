@@ -34,6 +34,7 @@ services:
       NITIDA_SIGNING_KEK: ${NITIDA_SIGNING_KEK:?set NITIDA_SIGNING_KEK in .env}
       NITIDA_COOKIE_SECURE: ${NITIDA_COOKIE_SECURE:-true}
       NITIDA_DEV_SEED_PASSWORD: ${NITIDA_DEV_SEED_PASSWORD:-} # only read by the dev profile; empty = no seed
+      NITIDA_MAIL_HOST: mailpit
       SPRING_DOCKER_COMPOSE_ENABLED: "false"
       # dev turns on Swagger UI. CI sets this to something else so the DAST stack matches production (docs closed).
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
@@ -45,7 +46,8 @@ services:
   mailpit:
     image: axllent/mailpit:v1.21@sha256:81370195cd4a0eab9604d17c2617a7525b0486f9365555253b6c5376c6350f1a
     ports:
-      - "8025:8025"
+      - "8025:8025" # web UI
+      - "1025:1025" # SMTP, what the backend uses
 
 volumes:
   pgdata:

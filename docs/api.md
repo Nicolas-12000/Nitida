@@ -31,15 +31,17 @@ Columnas: **Ctx** `T` = lleva `X-Workshop-Id` · **Roles** quién puede.
 | Ruta | Ctx | Roles | Cuerpo | Respuesta |
 |---|---|---|---|---|
 | `POST /api/v1/auth/register` | | P | `{email, password (12–128, no común), displayName}` | `201` `{userId}`; `409 EMAIL_TAKEN`, `422 WEAK_PASSWORD / INVALID_EMAIL` |
-| `POST /api/v1/auth/login` | | P | `{email, password, totp?}` | `200` igual que `/auth/me` + cookie `SESSION`; `401 TOTP_REQUIRED` si la cuenta tiene TOTP y falta `totp` (solo con la contraseña correcta); `401 INVALID_CREDENTIALS` (misma respuesta para usuario inexistente), `429 RATE_LIMITED` tras 5 fallos |
+| `POST /api/v1/auth/login` | | P | `{email, password, totp?}` | `200` igual que `/auth/me` + cookie `SESSION`; `401 TOTP_REQUIRED` si la cuenta tiene TOTP y falta `totp` (solo con la contraseña correcta); `totp` acepta el código de 6 dígitos o un código de recuperación (una sola vez); `401 INVALID_CREDENTIALS` (misma respuesta para usuario inexistente), `429 RATE_LIMITED` tras 5 fallos |
+| `POST /api/v1/auth/password/forgot` | | P | `{email}` | `204` siempre que el correo tenga forma válida, haya o no cuenta; si la hay, el código llega por correo (Mailpit en desarrollo) y vence en 1 hora; `422 INVALID_EMAIL`, `429` |
+| `POST /api/v1/auth/password/reset` | | P | `{token, password}` | `204`; `404` igual para código inexistente, vencido o ya usado; `422 WEAK_PASSWORD` |
 | `GET /api/v1/auth/me` | | U | — | `{id, email, displayName, platformAdmin, totpEnabled, totpSetupRequired, memberships:[{workshopId, role}]}`. `totpSetupRequired`: administrador que aún no activó TOTP (inicia sesión, pero sin privilegios de administrador) |
 | `POST /api/v1/auth/totp/setup` | | U | — | `{secret, otpauthUri}`: secreto Base32 y enlace para el QR, **una sola vez**; `409 TOTP_ALREADY_ENABLED` |
-| `POST /api/v1/auth/totp/confirm` | | U | `{code}` (6 dígitos) | `204`; activa TOTP y, si es administrador, le da sus privilegios en esta sesión; `422 INVALID_TOTP`, `409 TOTP_NOT_STARTED`, `429` tras 5 intentos |
+| `POST /api/v1/auth/totp/confirm` | | U | `{code}` (6 dígitos) | `200` `{recoveryCodes}`: 8 códigos de un solo uso, **una sola vez**; activa TOTP y, si es administrador, le da sus privilegios en esta sesión; `422 INVALID_TOTP`, `409 TOTP_NOT_STARTED`, `429` tras 5 intentos |
 | `POST /api/v1/workshops` | | U | `{name, documentNumber, address, municipality, phone, facadePhotoId?}` | `201` `{workshopId}`; quien lo crea queda como dueño |
 | `GET /api/v1/workshops/mine` | | U | — | talleres de la persona |
 | `GET /api/v1/workshops/{id}` | T | O M R | — | datos y ajustes del taller (`intakeAlertHours`, `cashTolerance`, `stalledDays`, `version`, estado) |
 | `PATCH /api/v1/workshops/{id}/settings` | T | O | `{intakeAlertHours 1–168, cashTolerance ≥ 0, stalledDays 1–90, version}` | ajustes actualizados |
-| `POST /api/v1/workshops/{id}/invitations` | T | O | `{email, role: MECHANIC\|FRONT_DESK}` | `201` `{token}` (una vez) |
+| `POST /api/v1/workshops/{id}/invitations` | T | O | `{email, role: MECHANIC\|FRONT_DESK}` | `201` `{invitationId, expiresAt}`; el código va por correo (Mailpit en desarrollo), no en la respuesta |
 | `GET /api/v1/workshops/{id}/members` | T | O | — | miembros |
 | `DELETE /api/v1/workshops/{id}/members/{userId}` | T | O | — | `204`; `409 LAST_OWNER` si es el único dueño |
 | `POST /api/v1/invitations/{token}/accept` | | U | — | `{workshopId}`; el correo debe coincidir con el de la invitación |
@@ -137,7 +139,7 @@ Columnas: **Ctx** `T` = lleva `X-Workshop-Id` · **Roles** quién puede.
 | `WORKSHOP_REQUIRED` / `INVALID_WORKSHOP_ID` | 400 | Falta o es inválido `X-Workshop-Id` |
 | `WORKSHOP_SUSPENDED` | 423 | El taller suspendido no crea registros nuevos |
 | `WEAK_PASSWORD` · `INVALID_EMAIL` · `EMAIL_TAKEN` · `INVALID_CREDENTIALS` | 422 / 409 / 401 | Registro e inicio de sesión |
-| `TOTP_REQUIRED` · `INVALID_TOTP` · `TOTP_ALREADY_ENABLED` · `TOTP_NOT_STARTED` | 401 / 422 / 409 | Verificación en dos pasos: falta el código al iniciar sesión, código inválido al activar, ya activa, o falta pedir el QR |
+| `TOTP_REQUIRED` · `INVALID_TOTP` · `TOTP_ALREADY_ENABLED` · `TOTP_NOT_STARTED` | 401 / 422 / 409 | Verificación en dos pasos: falta el código al iniciar sesión, código inválido al activar, ya activa, o falta pedir el QR. Un código de recuperación se manda en el mismo campo `totp` y sirve una sola vez |
 | `INVALID_PLATE` · `PLATE_IN_USE` · `INVALID_VIN` · `PLATE_VIN_MISMATCH` · `IDENTIFIER_REQUIRED` · `INVALID_MODEL_YEAR` · `INVALID_DISPLACEMENT` | 422 | Identidad de la moto |
 | `INVALID_MILEAGE` · `MILEAGE_REGRESSION` | 422 | Kilometraje fuera de rango o menor al anterior |
 | `INTAKE_ALREADY_OPEN` · `INTAKE_NOT_OPEN` · `PHOTO_REQUIRED` · `INVALID_PHOTO` | 409 / 422 | Recepción |

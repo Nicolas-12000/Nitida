@@ -67,6 +67,10 @@ public class AppUser extends AssignedIdEntity {
         lockedUntil = null;
     }
 
+    public void changePassword(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
     /** Stores a freshly generated (sealed) secret; it only counts once {@link #enableTotp} proves the app has it. */
     public void startTotpEnrollment(byte[] sealedSecret, byte[] nonce) {
         if (totpEnabled) throw ApiException.conflict("TOTP_ALREADY_ENABLED", "La verificación en dos pasos ya está activa");
