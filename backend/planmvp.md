@@ -56,7 +56,7 @@ Entregable: **`docs/api.md`** (T4), escrito a mano. Por cada endpoint de la spec
 | 5 | `cashdesk`, seriales globales | **Hecha** (T2): cuadre, alertas F1–F6, listeners y scheduler |
 | 6 | Portal del propietario | **Hecha en el back** (T3): reclamar, traspasar, historial y links del propietario. E2E Playwright = frontend |
 
-Calidad al último commit: 395 pruebas en verde; cobertura JaCoCo 96,5 % de líneas y 82 % de ramas (el build exige 90 % y 75 %); mutación PIT 91 % (el build exige 85 %); `Modulith verify`, ArchUnit (arquitectura + seguridad) y matriz de acceso en verde.
+Calidad al último commit: 436 pruebas en verde; cobertura JaCoCo 96,5 % de líneas y 82 % de ramas (el build exige 90 % y 75 %); mutación PIT 91 % (el build exige 85 %); `Modulith verify`, ArchUnit (arquitectura + seguridad) y matriz de acceso en verde.
 
 ## Checklist del MVP contra la spec
 
@@ -102,7 +102,8 @@ Marcado = hecho y con prueba. Orden sugerido para la entrega: RLS → contrato �
 - [x] P1–P8, P11, P12; D3, D4, D5; límites de §15.3; concurrencia de entregas y seriales
 - [ ] P9 como `@Property` jqwik (hoy: caminata aleatoria con semilla en integración). Cuesta porque la suma vive en una consulta SQL, no en una función pura
 - [ ] P10 como `@Property` jqwik (seriales en varias motos); mismo motivo
-- [ ] D1 verificador independiente en Python; D2 Ed25519 JDK vs BouncyCastle
+- [x] D2 Ed25519 JDK vs BouncyCastle en los dos sentidos (`Ed25519DifferentialTest`, propiedades jqwik)
+- [ ] D1 verificador independiente en Python (necesita exportar cadenas como fixtures y `pip install cryptography` en el CI)
 - [x] PIT 91 % global (umbral del build 85 %), `history.domain` ≥ 85 %, alcance `shared` + todos los `*.domain` (incluye `orders` y `cashdesk`)
 - [x] JaCoCo 96,5 % de líneas y 82 % de ramas (umbrales del build 90 % y 75 %)
 
@@ -120,7 +121,7 @@ Marcado = hecho y con prueba. Orden sugerido para la entrega: RLS → contrato �
 ### Documentación y datos (§16)
 - [x] `README.md` (raíz): arranque, variables, cómo correr Sonar y PIT, firma = integridad, no no-repudio
 - [x] `docs/decisiones/`: 13 ADRs
-- [ ] Semilla del perfil `dev`: 2 talleres (uno verificado), 1 admin, 5 motos con historial
+- [x] Semilla del perfil `dev` (`DevSeed`, por la API HTTP, solo con `NITIDA_DEV_SEED_PASSWORD`): 1 admin, 2 talleres (uno verificado), 5 motos con historial; `DevSeedIntegrationTest`
 
 ### Fuera del MVP (correcto que no estén)
 Web Push, recordatorios por km, publicación de cabezas de cadena, mercado y precios, inventario de repuestos, catálogo compartido.

@@ -21,8 +21,21 @@ docker compose up           # postgres, backend (:8080) y mailpit (:8025)
 | `POSTGRES_PASSWORD` | Clave de la base. Obligatoria: `docker compose` no arranca sin ella |
 | `NITIDA_SIGNING_KEK` | Llave de 32 bytes en base64 que cifra las llaves de firma de los talleres. **No va al repositorio.** Generar con `openssl rand -base64 32` |
 | `NITIDA_COOKIE_SECURE` | `true` (por defecto). Solo `false` en desarrollo local por HTTP |
+| `NITIDA_DEV_SEED_PASSWORD` | Opcional, solo perfil `dev` (12+ caracteres). Si se define, al arrancar crea datos de desarrollo: ver abajo |
 
 Sin Docker, las pruebas usan H2 en modo PostgreSQL: no necesitan nada instalado.
+
+### Datos de desarrollo (para el frontend)
+
+Con `NITIDA_DEV_SEED_PASSWORD` definida y el perfil `dev` (el de `docker compose` por defecto), el primer arranque crea por la propia API: 1 administrador, 2 talleres (uno verificado, uno pendiente) y 5 motos entregadas con historial firmado. Todas las cuentas usan esa clave:
+
+| Cuenta | Qué es |
+|---|---|
+| `admin@nitida.test` | Administrador de la plataforma |
+| `taller.verificado@nitida.test` | Dueño de «Taller El Rayo» (verificado, con las 5 motos `DEV01A`…`DEV05A`) |
+| `taller.pendiente@nitida.test` | Dueña de «Taller La Chispa» (pendiente de verificación) |
+
+No hay clave por defecto: sin la variable no se crea nada. Si ya existe `admin@nitida.test`, no vuelve a sembrar.
 
 ## Comandos
 

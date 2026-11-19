@@ -26,6 +26,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       NITIDA_SIGNING_KEK: ${NITIDA_SIGNING_KEK:?set NITIDA_SIGNING_KEK in .env}
       NITIDA_COOKIE_SECURE: ${NITIDA_COOKIE_SECURE:-true}
+      NITIDA_DEV_SEED_PASSWORD: ${NITIDA_DEV_SEED_PASSWORD:-} # only read by the dev profile; empty = no seed
       SPRING_DOCKER_COMPOSE_ENABLED: "false"
       # dev turns on Swagger UI. CI sets this to something else so the DAST stack matches production (docs closed).
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}

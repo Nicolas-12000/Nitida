@@ -17,22 +17,22 @@ top to bottom direction
 
 System_Boundary("NitidaApplication_boundary", "NitidaApplication", $tags="") {
   Container_Boundary("NitidaApplication.NitidaApplication_boundary", "NitidaApplication", $tags="") {
+    Component(NitidaApplication.NitidaApplication.Intake, "Intake", $techn="Module", $descr="", $tags="", $link="")
     Component(NitidaApplication.NitidaApplication.Shared, "Shared", $techn="Module", $descr="", $tags="", $link="")
     Component(NitidaApplication.NitidaApplication.Files, "Files", $techn="Module", $descr="", $tags="", $link="")
     Component(NitidaApplication.NitidaApplication.Motorcycles, "Motorcycles", $techn="Module", $descr="", $tags="", $link="")
     Component(NitidaApplication.NitidaApplication.Workshops, "Workshops", $techn="Module", $descr="", $tags="", $link="")
-    Component(NitidaApplication.NitidaApplication.Intake, "Intake", $techn="Module", $descr="", $tags="", $link="")
   }
 
 }
 
-Rel(NitidaApplication.NitidaApplication.Files, NitidaApplication.NitidaApplication.Shared, "depends on", $techn="", $tags="", $link="")
+Rel(NitidaApplication.NitidaApplication.Workshops, NitidaApplication.NitidaApplication.Shared, "uses", $techn="", $tags="", $link="")
+Rel(NitidaApplication.NitidaApplication.Motorcycles, NitidaApplication.NitidaApplication.Shared, "uses", $techn="", $tags="", $link="")
 Rel(NitidaApplication.NitidaApplication.Intake, NitidaApplication.NitidaApplication.Motorcycles, "uses", $techn="", $tags="", $link="")
 Rel(NitidaApplication.NitidaApplication.Intake, NitidaApplication.NitidaApplication.Shared, "uses", $techn="", $tags="", $link="")
 Rel(NitidaApplication.NitidaApplication.Intake, NitidaApplication.NitidaApplication.Workshops, "uses", $techn="", $tags="", $link="")
 Rel(NitidaApplication.NitidaApplication.Intake, NitidaApplication.NitidaApplication.Files, "uses", $techn="", $tags="", $link="")
-Rel(NitidaApplication.NitidaApplication.Workshops, NitidaApplication.NitidaApplication.Shared, "uses", $techn="", $tags="", $link="")
-Rel(NitidaApplication.NitidaApplication.Motorcycles, NitidaApplication.NitidaApplication.Shared, "uses", $techn="", $tags="", $link="")
+Rel(NitidaApplication.NitidaApplication.Files, NitidaApplication.NitidaApplication.Shared, "depends on", $techn="", $tags="", $link="")
 
 SHOW_LEGEND(true)
 hide stereotypes
