@@ -5,6 +5,7 @@ import co.nitida.catalog.SerialRejected;
 import co.nitida.catalog.domain.Product;
 import co.nitida.catalog.domain.ProductCode;
 import co.nitida.catalog.domain.ProductRepository;
+import co.nitida.catalog.domain.ActiveSerials;
 import co.nitida.catalog.domain.Serial;
 import co.nitida.catalog.domain.SerialNumber;
 import co.nitida.catalog.domain.SerialRepository;
@@ -125,7 +126,7 @@ class CatalogApiImpl implements CatalogApi {
     }
 
     private SerialRegistration resolve(Serial active, UUID motorcycleId, UUID workshopId, UUID orderId, SerialNumber serial) {
-        if (active.getMotorcycleId().equals(motorcycleId)) { // reinstalled on the same motorcycle: no alert
+        if (ActiveSerials.claim(active.getMotorcycleId(), motorcycleId)) { // same motorcycle: a reinstall, no alert
             return new SerialRegistration.Accepted(active.getId(), serial.hash());
         }
         events.publishEvent(new SerialRejected(workshopId, orderId, serial.hash(), clock.instant()));

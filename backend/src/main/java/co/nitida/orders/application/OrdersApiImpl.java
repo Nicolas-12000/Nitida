@@ -2,7 +2,7 @@ package co.nitida.orders.application;
 
 import co.nitida.orders.OrderStatus;
 import co.nitida.orders.OrdersApi;
-import co.nitida.orders.domain.PaymentMethod;
+import co.nitida.orders.domain.CashExpected;
 import co.nitida.orders.domain.PaymentRepository;
 import co.nitida.orders.domain.WorkOrderRepository;
 import java.time.Instant;
@@ -32,7 +32,8 @@ class OrdersApiImpl implements OrdersApi {
     @Override
     @Transactional(readOnly = true)
     public long cashTotal(UUID workshopId, Instant from, Instant to) {
-        return payments.sumByMethod(workshopId, PaymentMethod.CASH, from, to);
+        return CashExpected.sum(payments.findInWindow(workshopId, from, to).stream()
+                .map(p -> new CashExpected.Line(p.getMethod(), p.getAmount(), p.isVoided())).toList());
     }
 
     @Override

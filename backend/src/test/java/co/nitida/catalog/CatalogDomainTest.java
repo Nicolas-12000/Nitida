@@ -3,14 +3,19 @@ package co.nitida.catalog;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import co.nitida.catalog.domain.ActiveSerials;
 import co.nitida.catalog.domain.ProductCode;
 import co.nitida.catalog.domain.Serial;
 import co.nitida.catalog.domain.SerialNumber;
 import co.nitida.shared.ApiException;
 import co.nitida.shared.UuidV7;
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.List;
+import java.util.UUID;
 import net.jqwik.api.Arbitraries;
 import net.jqwik.api.Arbitrary;
+import net.jqwik.api.Combinators;
 import net.jqwik.api.ForAll;
 import net.jqwik.api.Property;
 import net.jqwik.api.Provide;
@@ -117,6 +122,41 @@ class CatalogDomainTest {
         assertThatThrownBy(() -> s.reactivate(moto, UuidV7.next(), UuidV7.next(), " ", NOW)).isInstanceOf(ApiException.class);
         s.reactivate(moto, UuidV7.next(), UuidV7.next(), "Pieza reparada y reinstalada", NOW);
         assertThat(s.isActive()).isTrue();
+    }
+
+    record Move(int serial, int motorcycle, boolean retire) {}
+
+    /** P10: any sequence of registers and retires leaves each serial active on at most one motorcycle. */
+    @Property(tries = 200)
+    void aSerialIsNeverActiveOnTwoMotorcycles(@ForAll("moves") List<Move> moves) {
+        String[] serials = {"SER-0001", "SER-0002", "SER-0003", "SER-0004", "SER-0005"};
+        UUID[] motos = {UuidV7.next(), UuidV7.next(), UuidV7.next()};
+        var holder = new HashMap<String, UUID>();
+        for (var move : moves) {
+            String serial = serials[move.serial()];
+            UUID moto = motos[move.motorcycle()];
+            if (move.retire()) {
+                holder.remove(serial);
+                continue;
+            }
+            UUID current = holder.get(serial);
+            if (ActiveSerials.claim(current, moto)) {
+                UUID previous = holder.put(serial, moto);
+                assertThat(previous == null || previous.equals(moto)).isTrue();
+            } else {
+                assertThat(holder).containsKey(serial);
+                assertThat(holder.get(serial)).isNotEqualTo(moto);
+            }
+        }
+    }
+
+    @Provide
+    Arbitrary<List<Move>> moves() {
+        Arbitrary<Move> move = Combinators.combine(
+                Arbitraries.integers().between(0, 4),
+                Arbitraries.integers().between(0, 2),
+                Arbitraries.of(true, false)).as(Move::new);
+        return move.list().ofMinSize(1).ofMaxSize(40);
     }
 
     @Test

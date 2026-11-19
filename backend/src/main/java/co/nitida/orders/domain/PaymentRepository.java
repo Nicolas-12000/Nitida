@@ -13,8 +13,6 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
 
     Optional<Payment> findByIdAndWorkshopId(UUID id, UUID workshopId);
 
-    @Query("select coalesce(sum(p.amount), 0) from Payment p where p.workshopId = :ws and p.method = :method "
-            + "and p.voidedAt is null and p.recordedAt >= :from and p.recordedAt < :to")
-    long sumByMethod(@Param("ws") UUID workshopId, @Param("method") PaymentMethod method,
-                     @Param("from") Instant from, @Param("to") Instant to);
+    @Query("select p from Payment p where p.workshopId = :ws and p.recordedAt >= :from and p.recordedAt < :to")
+    List<Payment> findInWindow(@Param("ws") UUID workshopId, @Param("from") Instant from, @Param("to") Instant to);
 }
