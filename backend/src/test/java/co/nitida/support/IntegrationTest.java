@@ -21,6 +21,7 @@ import tools.jackson.databind.JsonNode;
 
 /** Full-stack tests: real filters, sessions, CSRF, Flyway schema on H2 (PostgreSQL mode). */
 @SpringBootTest
+@org.springframework.test.context.ActiveProfiles("test")
 @AutoConfigureMockMvc
 public abstract class IntegrationTest {
     public static final String PASSWORD = "una-clave-larga-123";
