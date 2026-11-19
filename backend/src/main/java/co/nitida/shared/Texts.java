@@ -27,7 +27,7 @@ public final class Texts {
         return value == null || value.isBlank() ? null : value.strip();
     }
 
-    private static boolean containsEmailLike(String v) {
+    static boolean containsEmailLike(String v) {
         for (int at = 0; at < v.length(); at++) {
             if (v.charAt(at) != '@') continue;
             int localStart = at;
@@ -52,7 +52,7 @@ public final class Texts {
         return false;
     }
 
-    private static boolean containsLongDigitRun(String v) {
+    static boolean containsLongDigitRun(String v) {
         for (int start = 0; start < v.length(); start++) {
             if (!Character.isDigit(v.charAt(start))) continue;
             int digits = 1;
