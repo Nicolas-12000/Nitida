@@ -60,6 +60,9 @@ docker-compose.override.yml
 ### jqwik (local DB file) ###
 .jqwik-database
 
+### D1 verifier, local only ###
+.venv-d1/
+
 ### Quality / reports (cuando agregues pitest, SBOM, etc.) ###
 .pitest/
 **/mutationReport/
