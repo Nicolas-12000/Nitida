@@ -37,9 +37,8 @@ class OrdersApiImpl implements OrdersApi {
 
     @Override
     @Transactional(readOnly = true)
-    public List<UUID> inconsistentZeroTotalOrders(UUID workshopId) {
-        return orders.findByWorkshopIdAndStatusInOrderByCreatedAtDesc(workshopId, EnumSet.of(OrderStatus.DELIVERED),
-                        org.springframework.data.domain.Pageable.unpaged()).stream()
-                .filter(o -> o.total().value() == 0 && !o.isWarranty()).map(o -> o.getId()).toList();
+    public List<ZeroTotalOrder> inconsistentZeroTotalOrders() {
+        return orders.findDeliveredWithZeroTotalWithoutWarranty().stream()
+                .map(o -> new ZeroTotalOrder(o.getId(), o.getWorkshopId())).toList();
     }
 }

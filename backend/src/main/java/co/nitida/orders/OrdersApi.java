@@ -14,6 +14,8 @@ public interface OrdersApi {
     /** Sum of non-voided CASH payments recorded in [from, to) for the workshop (RN-52). */
     long cashTotal(UUID workshopId, Instant from, Instant to);
 
-    /** Delivered orders with a zero total that are not warranty orders: should never exist (F4). */
-    List<UUID> inconsistentZeroTotalOrders(UUID workshopId);
+    record ZeroTotalOrder(UUID orderId, UUID workshopId) {}
+
+    /** Delivered orders with a zero total that are not warranty orders: should never exist (alert F4). */
+    List<ZeroTotalOrder> inconsistentZeroTotalOrders();
 }
