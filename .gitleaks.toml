@@ -4,6 +4,10 @@ title = "Nitida gitleaks config"
 useDefault = true
 
 [allowlist]
-description = "Throwaway values used only by tests and CI (32 zero bytes in base64, CI-only DB password)"
-regexes = ['''AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=''', '''ci-only-password''']
+description = "Throwaway test and CI values, plus the public SonarCloud project key (the word Key trips generic-api-key)"
+regexes = [
+  '''AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=''',
+  '''ci-only-password''',
+  '''Nicolas-12000_Nitida''',
+]
 paths = ['''backend/src/test/''']
