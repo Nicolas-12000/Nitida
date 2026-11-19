@@ -70,15 +70,15 @@ public class WorkOrder extends AssignedIdEntity {
     private long version;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-    @JoinColumn(name = "work_order_id")
+    @JoinColumn(name = "work_order_id", nullable = false)
     @Fetch(FetchMode.SUBSELECT)
     private List<Job> jobs = new ArrayList<>();
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-    @JoinColumn(name = "work_order_id")
+    @JoinColumn(name = "work_order_id", nullable = false)
     @Fetch(FetchMode.SUBSELECT)
     private List<Part> parts = new ArrayList<>();
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-    @JoinColumn(name = "work_order_id")
+    @JoinColumn(name = "work_order_id", nullable = false)
     @Fetch(FetchMode.SUBSELECT)
     private List<OrderPhoto> photos = new ArrayList<>();
 
