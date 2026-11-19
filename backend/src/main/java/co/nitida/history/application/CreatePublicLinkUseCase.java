@@ -1,6 +1,5 @@
 package co.nitida.history.application;
 
-import co.nitida.history.domain.HistoryEntryRepository;
 import co.nitida.history.domain.PublicLink;
 import co.nitida.history.domain.PublicLinkRepository;
 import co.nitida.intake.IntakeApi;
@@ -25,14 +24,12 @@ public class CreatePublicLinkUseCase {
 
     private final PublicLinkRepository links;
     private final IntakeApi intakes;
-    private final HistoryEntryRepository entries;
     private final AuditService audit;
     private final Clock clock;
 
-    CreatePublicLinkUseCase(PublicLinkRepository links, IntakeApi intakes, HistoryEntryRepository entries, AuditService audit, Clock clock) {
+    CreatePublicLinkUseCase(PublicLinkRepository links, IntakeApi intakes, AuditService audit, Clock clock) {
         this.links = links;
         this.intakes = intakes;
-        this.entries = entries;
         this.audit = audit;
         this.clock = clock;
     }

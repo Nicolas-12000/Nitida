@@ -33,9 +33,9 @@ class AuthIntegrationTest extends IntegrationTest {
     @Test
     void weakPasswordAndBadEmailAreUnprocessable() throws Exception {
         post("/api/v1/auth/register", null, null, Map.of("email", uniqueEmail(), "password", "corta", "displayName", "Ana"))
-                .andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.code").value("WEAK_PASSWORD"));
+                .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.code").value("WEAK_PASSWORD"));
         post("/api/v1/auth/register", null, null, Map.of("email", "no-es-correo", "password", PASSWORD, "displayName", "Ana"))
-                .andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.code").value("INVALID_EMAIL"));
+                .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.code").value("INVALID_EMAIL"));
     }
 
     @Test

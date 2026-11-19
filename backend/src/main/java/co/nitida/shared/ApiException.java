@@ -31,7 +31,7 @@ public class ApiException extends RuntimeException {
     }
 
     public static ApiException unprocessable(String code, String message) {
-        return new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, code, message);
+        return new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, code, message);
     }
 
     public static ApiException badRequest(String code, String message) {

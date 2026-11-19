@@ -87,4 +87,5 @@ public class Serial extends AssignedIdEntity {
     public UUID getMotorcycleId() { return motorcycleId; }
     public UUID getWorkshopId() { return workshopId; }
     public String getStatus() { return status; }
+    public String getReason() { return reason; }
 }

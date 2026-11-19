@@ -194,8 +194,8 @@ class HistoryIntegrationTest extends IntegrationTest {
     @Test
     void linkExpirationIsBoundedAndWorkshopMustHaveAttendedTheMotorcycle() throws Exception {
         var f = fixture();
-        post("/api/v1/motorcycles/" + f.motorcycle() + "/links", f.owner(), f.workshop(), Map.of("days", 0)).andExpect(status().isUnprocessableEntity());
-        post("/api/v1/motorcycles/" + f.motorcycle() + "/links", f.owner(), f.workshop(), Map.of("days", 366)).andExpect(status().isUnprocessableEntity());
+        post("/api/v1/motorcycles/" + f.motorcycle() + "/links", f.owner(), f.workshop(), Map.of("days", 0)).andExpect(status().isUnprocessableContent());
+        post("/api/v1/motorcycles/" + f.motorcycle() + "/links", f.owner(), f.workshop(), Map.of("days", 366)).andExpect(status().isUnprocessableContent());
         post("/api/v1/motorcycles/" + f.motorcycle() + "/links", f.owner(), f.workshop(), Map.of("days", 365)).andExpect(status().isCreated());
         var stranger = registerAndLogin();
         UUID otherWs = createWorkshop(stranger);
@@ -215,8 +215,8 @@ class HistoryIntegrationTest extends IntegrationTest {
         post(path, f.owner(), f.workshop(), Map.of("amendsSeq", 2, "reason", "Se digitó mal el diagnóstico", "diagnosis", "Ruido en la cadena al acelerar"))
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.seq").value(3));
         post(path, f.owner(), f.workshop(), Map.of("amendsSeq", 3, "reason", "Corrección de la corrección", "mileage", 1400))
-                .andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.code").value("CANNOT_AMEND_AMENDMENT"));
-        post(path, f.owner(), f.workshop(), Map.of("amendsSeq", 2, "reason", "corta")).andExpect(status().isUnprocessableEntity());
+                .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.code").value("CANNOT_AMEND_AMENDMENT"));
+        post(path, f.owner(), f.workshop(), Map.of("amendsSeq", 2, "reason", "corta")).andExpect(status().isUnprocessableContent());
         post(path, f.owner(), f.workshop(), Map.of("amendsSeq", 2, "reason", "Sin ningún campo a corregir"))
                 .andExpect(jsonPath("$.code").value("NOTHING_TO_AMEND"));
         post(path, mechanic, f.workshop(), Map.of("amendsSeq", 2, "reason", "Corrección de mi propio trabajo", "mileage", 1499))
@@ -241,7 +241,7 @@ class HistoryIntegrationTest extends IntegrationTest {
         noPhoto.put("reason", "Se cambió el tablero por falla");
         post(path, f.owner(), f.workshop(), noPhoto).andExpect(jsonPath("$.code").value("PHOTO_REQUIRED"));
         post(path, f.owner(), f.workshop(), Map.of("mileage", 10, "reason", "corto", "photoId", uploadPhoto(f.owner(), f.workshop())))
-                .andExpect(status().isUnprocessableEntity());
+                .andExpect(status().isUnprocessableContent());
         post(path, f.owner(), f.workshop(), Map.of("mileage", 10, "reason", "Se cambió el tablero por falla", "photoId", uploadPhoto(f.owner(), f.workshop())))
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.seq").value(2));
         assertThat(history.lastMileage(f.motorcycle()).orElseThrow().km()).isEqualTo(10);

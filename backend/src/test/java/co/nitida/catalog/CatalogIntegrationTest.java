@@ -87,7 +87,7 @@ class CatalogIntegrationTest extends IntegrationTest {
                 .andExpect(status().isCreated());
         get("/api/v1/catalog/products/4006381333931", owner, ws).andExpect(jsonPath("$.found").value(true))
                 .andExpect(jsonPath("$.product.name").value("Aceite 20W50"));
-        get("/api/v1/catalog/products/4006381333932", owner, ws).andExpect(status().isUnprocessableEntity())
+        get("/api/v1/catalog/products/4006381333932", owner, ws).andExpect(status().isUnprocessableContent())
                 .andExpect(jsonPath("$.code").value("INVALID_PRODUCT_CODE"));
         // catalog is per workshop (RN-93)
         var other = registerAndLogin();

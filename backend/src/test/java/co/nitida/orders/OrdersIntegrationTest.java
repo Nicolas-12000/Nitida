@@ -148,7 +148,7 @@ class OrdersIntegrationTest extends IntegrationTest {
         // same motorcycle comes back reading 400 km: a regression against 1000
         var lowIntake = intake(s, jdbc.sql("SELECT current_plate FROM motorcycles.motorcycle WHERE id = ?").param(first.motorcycleId()).query(String.class).single(), 400);
         post("/api/v1/orders", s.mechanic(), s.ws(), Map.of("intakeId", lowIntake, "diagnosis", "Regreso con el tablero cambiado"))
-                .andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.code").value("MILEAGE_REGRESSION"));
+                .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.code").value("MILEAGE_REGRESSION"));
 
         post("/api/v1/motorcycles/" + first.motorcycleId() + "/history/odometer-changes", s.owner(), s.ws(),
                 Map.of("mileage", 400, "reason", "Se reemplazó el tablero por falla", "photoId", uploadPhoto(s.owner(), s.ws()))).andExpect(status().isCreated());
@@ -195,9 +195,9 @@ class OrdersIntegrationTest extends IntegrationTest {
     void deliveryGuardsPaymentsVersionAndOverpayment() throws Exception {
         var s = shop();
         var v = completed(s, 10_000, 0);
-        deliver(v, s.desk()).andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.code").value("INCOMPLETE_PAYMENTS"));
+        deliver(v, s.desk()).andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.code").value("INCOMPLETE_PAYMENTS"));
         post("/api/v1/orders/" + v.orderId() + "/payments", s.desk(), s.ws(), Map.of("method", "CASH", "amount", 10_001))
-                .andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.code").value("OVERPAYMENT"));
+                .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.code").value("OVERPAYMENT"));
         var paymentId = json(post("/api/v1/orders/" + v.orderId() + "/payments", s.desk(), s.ws(), Map.of("method", "CASH", "amount", 10_000))
                 .andExpect(status().isCreated())).get("paymentId").asString();
         post("/api/v1/orders/" + v.orderId() + "/delivery", s.desk(), s.ws(), Map.of("version", 999)).andExpect(status().isConflict())
@@ -206,7 +206,7 @@ class OrdersIntegrationTest extends IntegrationTest {
         // voiding is allowed before delivery and puts the order back to unpaid
         post("/api/v1/payments/" + paymentId + "/void", s.desk(), s.ws(), Map.of("reason", "Se digitó mal el valor")).andExpect(status().isNoContent());
         post("/api/v1/payments/" + paymentId + "/void", s.desk(), s.ws(), Map.of("reason", "Se digitó mal el valor")).andExpect(status().isConflict());
-        deliver(v, s.desk()).andExpect(status().isUnprocessableEntity());
+        deliver(v, s.desk()).andExpect(status().isUnprocessableContent());
     }
 
     @Test
@@ -214,7 +214,7 @@ class OrdersIntegrationTest extends IntegrationTest {
         var s = shop();
         var v = completed(s, 10_000, 0);
         post("/api/v1/orders/" + v.orderId() + "/payments", s.desk(), s.ws(), Map.of("method", "STORE_CREDIT", "amount", 10_000))
-                .andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.code").value("CUSTOMER_REQUIRED"));
+                .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.code").value("CUSTOMER_REQUIRED"));
     }
 
     @Test
@@ -233,7 +233,7 @@ class OrdersIntegrationTest extends IntegrationTest {
     void zeroTotalIsOnlyDeliverableAsAWarrantyOfAnEarlierOrder() throws Exception {
         var s = shop();
         var plain = completed(s, 0, 0);
-        deliver(plain, s.desk()).andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.code").value("INVALID_WARRANTY"));
+        deliver(plain, s.desk()).andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.code").value("INVALID_WARRANTY"));
 
         var first = completed(s, 10_000, 0);
         post("/api/v1/orders/" + first.orderId() + "/payments", s.desk(), s.ws(), Map.of("method", "CASH", "amount", 10_000)).andExpect(status().isCreated());
@@ -261,7 +261,7 @@ class OrdersIntegrationTest extends IntegrationTest {
                 .andExpect(jsonPath("$.accepted").value(true)).andExpect(jsonPath("$.evidenceLevel").value("UNIQUE_SERIAL"));
         assertThat(jdbc.sql("SELECT count(*) FROM catalog.serial WHERE normalized_serial = ? AND status = 'ACTIVE'").param(serial).query(Long.class).single()).isEqualTo(1L);
 
-        transition(v, s.mechanic(), "CANCELLED", null).andExpect(status().isUnprocessableEntity());
+        transition(v, s.mechanic(), "CANCELLED", null).andExpect(status().isUnprocessableContent());
         transition(v, s.mechanic(), "CANCELLED", "El cliente retiró la moto sin reparar").andExpect(status().isOk());
         assertThat(jdbc.sql("SELECT count(*) FROM catalog.serial WHERE normalized_serial = ? AND status = 'ACTIVE'").param(serial).query(Long.class).single()).isZero();
     }
@@ -292,9 +292,9 @@ class OrdersIntegrationTest extends IntegrationTest {
         String path = "/api/v1/orders/" + v.orderId() + "/parts/" + part + "/authenticity";
         var noPhoto = new HashMap<String, Object>();
         noPhoto.put("method", "Verificado en el sitio oficial del fabricante");
-        post(path, s.mechanic(), s.ws(), noPhoto).andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.code").value("PHOTO_REQUIRED"));
+        post(path, s.mechanic(), s.ws(), noPhoto).andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.code").value("PHOTO_REQUIRED"));
         post(path, s.mechanic(), s.ws(), Map.of("photoId", uploadPhoto(s.mechanic(), s.ws()), "method", "ok"))
-                .andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.code").value("INVALID_METHOD"));
+                .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.code").value("INVALID_METHOD"));
         post(path, s.mechanic(), s.ws(), Map.of("photoId", uploadPhoto(s.mechanic(), s.ws()), "method", "Verificado en el sitio oficial del fabricante"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.evidenceLevel").value("AUTHENTICITY_VERIFIED"));
     }
@@ -310,7 +310,7 @@ class OrdersIntegrationTest extends IntegrationTest {
         bad.put("quantity", 1);
         bad.put("unitPrice", 100);
         bad.put("productCode", "4006381333932");
-        post("/api/v1/orders/" + v.orderId() + "/parts", s.mechanic(), s.ws(), bad).andExpect(status().isUnprocessableEntity())
+        post("/api/v1/orders/" + v.orderId() + "/parts", s.mechanic(), s.ws(), bad).andExpect(status().isUnprocessableContent())
                 .andExpect(jsonPath("$.code").value("INVALID_PRODUCT_CODE"));
         addPart(v, 100, "4006381333931");
         get("/api/v1/catalog/products/4006381333931", s.mechanic(), s.ws()).andExpect(jsonPath("$.found").value(true));
@@ -326,7 +326,7 @@ class OrdersIntegrationTest extends IntegrationTest {
         call(HttpMethod.PATCH, "/api/v1/orders/" + v.orderId(), s.mechanic(), s.ws(),
                 Map.of("version", version(v), "jobs", List.of(Map.of("type", "NOPE", "description", "algo")))).andExpect(status().isBadRequest());
         transition(v, s.mechanic(), "IN_PROGRESS", null).andExpect(status().isOk());
-        transition(v, s.mechanic(), "COMPLETED", null).andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.code").value("JOBS_REQUIRED"));
+        transition(v, s.mechanic(), "COMPLETED", null).andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.code").value("JOBS_REQUIRED"));
     }
 
     @Test

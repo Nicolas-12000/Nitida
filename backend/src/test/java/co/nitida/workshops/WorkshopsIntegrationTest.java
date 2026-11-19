@@ -28,7 +28,7 @@ class WorkshopsIntegrationTest extends IntegrationTest {
     void invalidWorkshopDataIsRejectedWithSpecificCodes() throws Exception {
         var owner = registerAndLogin();
         post("/api/v1/workshops", owner, null, Map.of("name", "T", "documentNumber", "900123456", "address", "Calle 1 # 2-3",
-                "municipality", "Pasto", "phone", "3101234567")).andExpect(status().isUnprocessableEntity())
+                "municipality", "Pasto", "phone", "3101234567")).andExpect(status().isUnprocessableContent())
                 .andExpect(jsonPath("$.code").value("INVALID_NAME"));
         post("/api/v1/workshops", owner, null, Map.of("name", "Taller", "documentNumber", "abc", "address", "Calle 1 # 2-3",
                 "municipality", "Pasto", "phone", "3101234567")).andExpect(jsonPath("$.code").value("INVALID_DOCUMENT"));
@@ -115,7 +115,7 @@ class WorkshopsIntegrationTest extends IntegrationTest {
         UUID ws = createWorkshop(owner);
         var admin = registerAdmin();
         post("/api/v1/admin/workshops/" + ws + "/status", admin, null, Map.of("status", "VERIFIED", "evidence", "corta"))
-                .andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.code").value("EVIDENCE_REQUIRED"));
+                .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.code").value("EVIDENCE_REQUIRED"));
         post("/api/v1/admin/workshops/" + ws + "/status", admin, null,
                 Map.of("status", "VERIFIED", "evidence", "Visita presencial el 18 de noviembre")).andExpect(status().isOk());
         post("/api/v1/admin/workshops/" + ws + "/status", admin, null,
@@ -144,11 +144,11 @@ class WorkshopsIntegrationTest extends IntegrationTest {
         long version = json(get("/api/v1/workshops/" + ws, owner, ws)).has("id") ? 0 : 0;
         String path = "/api/v1/workshops/" + ws + "/settings";
         call(HttpMethod.PATCH, path, owner, ws, Map.of("intakeAlertHours", 0, "cashTolerance", 0, "stalledDays", 7, "version", version))
-                .andExpect(status().isUnprocessableEntity());
+                .andExpect(status().isUnprocessableContent());
         call(HttpMethod.PATCH, path, owner, ws, Map.of("intakeAlertHours", 169, "cashTolerance", 0, "stalledDays", 7, "version", version))
-                .andExpect(status().isUnprocessableEntity());
+                .andExpect(status().isUnprocessableContent());
         call(HttpMethod.PATCH, path, owner, ws, Map.of("intakeAlertHours", 168, "cashTolerance", 50_001, "stalledDays", 7, "version", version))
-                .andExpect(status().isUnprocessableEntity());
+                .andExpect(status().isUnprocessableContent());
         call(HttpMethod.PATCH, path, owner, ws, Map.of("intakeAlertHours", 1, "cashTolerance", 50_000, "stalledDays", 7, "version", version))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.intakeAlertHours").value(1));
         call(HttpMethod.PATCH, path, owner, ws, Map.of("intakeAlertHours", 2, "cashTolerance", 0, "stalledDays", 7, "version", version))

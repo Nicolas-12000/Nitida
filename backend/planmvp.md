@@ -1,89 +1,164 @@
 # Nítida backend — plan del MVP y estado
 
-> **Para agentes:** usar `superpowers:executing-plans` o `superpowers:subagent-driven-development`. Cada tarea abre con su prueba que falla (TDD), cierra con la prueba en verde y un commit.
+> **Para agentes:** usar `superpowers:executing-plans` o `superpowers:subagent-driven-development`. Cada tarea empieza con su prueba fallando (TDD), termina con la prueba en verde y cierra con un commit.
 
-**Meta:** backend del MVP de Nítida: SaaS de taller de motos con historial firmado y verificable, con pipeline DevSecOps completo.
+**Contexto:** proyecto final de *Pruebas y Seguridad*. **Este repositorio entrega el backend**; el frontend (Next.js, spec §12) lo hace otra persona contra el contrato de la sección «Contrato con el frontend».
 
-**Arquitectura:** monolito modular (Spring Modulith) en Java 21 y Spring Boot 4.1; un orquestador `*UseCase` por caso de uso; HTTP solo con `RouterFunction` + handler delgado; dominio sin dependencias hacia afuera. Verificado en cada build con `ApplicationModules.verify()` y ArchUnit.
+**Meta:** backend del MVP de Nítida, un SaaS para talleres de motos con historial firmado y verificable, con pipeline DevSecOps completo y evidencia de calidad: pruebas, mutación, ArchUnit, OWASP Top 10:2025 y SonarQube.
 
-**Stack:** PostgreSQL + Flyway, Spring Security (sesión JDBC, CSRF, Argon2id), Ed25519 (JDK), JCS (RFC 8785), JUnit 5, jqwik, PIT, JaCoCo, Testcontainers (al final).
+**Arquitectura:** monolito modular con Spring Modulith, Java 21 y Spring Boot 4.1. Cada caso de uso tiene un orquestador `*UseCase`. HTTP solo con `RouterFunction` y un handler delgado. El dominio no depende de nada externo. Cada build lo verifica con `ApplicationModules.verify()` y ArchUnit.
 
-**Spec:** [`../Nitida-especificacion.md`](../Nitida-especificacion.md) (manda en negocio, seguridad y API).
+**Stack:** PostgreSQL + Flyway, Spring Security (sesión JDBC, CSRF, Argon2id), Ed25519 (JDK), JCS (RFC 8785), JUnit 5, jqwik, PIT, JaCoCo, ArchUnit, SonarQube, Testcontainers.
+
+**Spec:** [`../Nitida-especificacion.md`](../Nitida-especificacion.md). Manda en negocio, seguridad y API.
 
 ## Restricciones globales (de la spec)
 
-- Código en inglés; textos para la persona en español. Mapa de nombres: spec §4.1.
-- `[REGLA DURA]` PII nunca en el historial (RN-22); autorización en el backend; fail closed en firma y verificación; el serial rechazado no revela moto ni taller (RN-94); logs sin datos personales ni secretos.
-- Dinero en pesos enteros (`long`), línea 0..50.000.000; km 0..999.999.
-- Errores: Problem Details (RFC 9457) con `code` estable en inglés. 404 para recursos de otro taller.
-- Java 21 (la spec se ajustó de 25 a 21 porque es el JDK instalado).
+- El código va en inglés y los textos para la persona en español. Mapa de nombres: spec §4.1.
+- `[REGLA DURA]` PII nunca en el historial (RN-22). Autorización en el backend. Fail closed en firma y verificación. Un serial rechazado no revela la moto ni el taller (RN-94). Los logs no llevan datos personales ni secretos (§13.3).
+- Dinero en pesos enteros (`long`): cada línea entre 0 y 50.000.000. Kilometraje entre 0 y 999.999.
+- Errores en Problem Details (RFC 9457) con un `code` estable en inglés. Un recurso de otro taller responde `404`.
+- Java 21: la spec pedía 25 y se ajustó a 21 porque es el JDK instalado.
 
-## Cómo trabajamos (honesto sobre TDD)
+## Cómo trabajamos
 
-- **Lo hecho hasta ahora no fue TDD estricto.** Se siguió el plan de iteraciones de la spec §17 *de memoria*, sin este archivo. El código de cada módulo se escribió y **sus pruebas salieron en el mismo commit**, no antes. Las pruebas sí encontraron errores reales (violaciones de frontera de módulos, savepoints de JPA, perfil de pruebas).
-- **Desde aquí:** cada tarea nueva empieza escribiendo la prueba, verla fallar, implementar lo mínimo, verla pasar, commit.
-- Propiedades jqwik y modelos de referencia independientes (D4/D5) para las reglas con matemática o máquina de estados.
+- **Hasta T1 no hubo TDD estricto:** el código y sus pruebas salieron en el mismo commit. Aun así, las pruebas encontraron errores reales: fronteras de módulos, savepoints de JPA y el perfil de pruebas.
+- **Desde T2 hacemos TDD:** prueba → verla fallar → mínimo código → verla pasar → commit. `CashdeskIntegrationTest` ya está escrita y en rojo.
+- Usamos propiedades jqwik y modelos de referencia independientes (D4/D5) en las reglas con matemática o con máquina de estados.
+- Antes de cada commit: `./gradlew build` en verde y la consola de VS Code (Problems) sin errores ni advertencias nuevas.
 
-## Estado por iteración de la spec
+## Contrato con el frontend
+
+El backend es la autoridad: el frontend repite las validaciones con zod solo para la experiencia de uso.
+
+| Tema | Acuerdo |
+|---|---|
+| Base | Todo bajo `/api/v1`, mismo origen (Next reescribe `/api/*` hacia el backend). **Sin CORS.** |
+| Sesión | Cookie de sesión `HttpOnly`, `Secure`, `SameSite=Lax` (Spring Session JDBC). Nada de JWT ni `localStorage`. |
+| CSRF | Se lee la cookie `XSRF-TOKEN` y se reenvía en el encabezado `X-XSRF-TOKEN` en cada `POST`/`PATCH`/`DELETE`. Sin token → `403`. |
+| Taller activo | Encabezado `X-Workshop-Id` en cada solicitud del taller; el backend lo valida contra las membresías del usuario. |
+| Errores | Problem Details con `code`; el frontend traduce el `code` a un mensaje (DESIGN.md §9). Catálogo de `code` en `docs/api.md`. |
+| Concurrencia | Las modificaciones envían `version`; si hay choque, el backend responde `409 VERSION_CONFLICT`. |
+| Listados | Paginación por cursor. |
+| Datos de prueba | `docker compose up` + perfil `dev` con semilla (T9), para que el frontend no dependa de nosotros. |
+
+Entregable: **`docs/api.md`** (T4), escrito a mano. Por cada endpoint de la spec §9 incluye método, ruta, roles (§3.1), cuerpo, respuesta y `code` posibles. Una prueba falla si aparece una ruta que no está documentada.
+
+## Estado por iteración de la spec (§17)
 
 | It. | Módulos | Estado |
 |---|---|---|
-| 0 | Esqueleto, Gradle verificado, CI, módulos + ArchUnit | **Hecha** (CI en `.github/workflows/`) |
-| 1 | `identity`, `workshops` | **Hecha** (RLS pendiente, ver T7) |
+| 0 | Esqueleto, Gradle, CI, módulos + ArchUnit | **Hecha** (`.github/workflows/`) |
+| 1 | `identity`, `workshops` | **Hecha** (RLS pendiente → T8) |
 | 2 | `motorcycles`, `intake`, `files` | **Hecha** |
-| 3 | `orders`, `catalog` (parte 1) | **Código y pruebas de dominio hechos**; falta prueba de integración HTTP (T1) |
+| 3 | `orders`, `catalog` (parte 1) | **Hecha**, con la integración HTTP y la matriz de `orders` (commit 485403d) |
 | 4 | `history` | **Hecha** (JCS, cadena, firma, verificación, enmiendas, odómetro, links, concurrencia) |
-| 5 | `cashdesk`, seriales globales | Seriales **hechos**; `cashdesk` **pendiente** (T2) |
-| 6 | Portal del propietario | Tablas y `issueClaimCode` hechos; casos de uso **pendientes** (T3) |
+| 5 | `cashdesk`, seriales globales | Seriales **hechos**. `cashdesk`: dominio, migración `V12` y pruebas **escritas**; faltan la aplicación y la web (**T2**) |
+| 6 | Portal del propietario | Tablas e `issueClaimCode` hechos; los casos de uso están **pendientes** (T3) |
 
-Estado de calidad al último commit: ~200 pruebas en verde, cobertura de líneas ~92 %, mutación PIT 77 % (umbral 70), `Modulith verify` y reglas ArchUnit en verde.
+Calidad al último commit: ~200 pruebas en verde, ~92 % de cobertura de líneas, 77 % de mutación con PIT (umbral 70), `Modulith verify` y ArchUnit en verde.
 
 ## Tareas pendientes (en orden)
 
-### T1 — Integración HTTP de `orders` (entrega → historial)
-- **Prueba primero** (`OrdersIntegrationTest`): flujo recepción → OT → repuesto con código → serial → completar → pago → entrega; la entrega devuelve el código de reclamación **una sola vez**, aparece una entrada `SERVICE` y el link público da `VALID`.
-- Casos: regresión de km → `422 MILEAGE_REGRESSION`; mecánico no registra pagos (`403`); recepción no abre OT (`403`); OT de otro taller `404`; serial duplicado en otra moto → `200 accepted=false` y evento `SerialRejected`; cancelar libera seriales.
-- Commit: `test(orders): end-to-end order flow and access matrix`.
+### T0 — Consola limpia ✅
+- `HttpStatus.UNPROCESSABLE_ENTITY` → `UNPROCESSABLE_CONTENT` y `isUnprocessableEntity()` → `isUnprocessableContent()` (ambos están obsoletos en Spring 7).
+- Se quitaron los imports y campos sin uso (`AuthHandler`, `EntryContent`, `CreatePublicLinkUseCase.entries`, `VIN` en una prueba). Se agregó `Serial.getReason()`.
+- Quedan solo los errores de `CashdeskIntegrationTest`, que es la prueba en rojo de T2.
 
-### T2 — `cashdesk` (UC-17..19)
-- Tablas `cash_count`, `leak_alert` (migración `V12`). Casos de uso: `CloseCashCountUseCase`, `ReopenCashCountUseCase`, `ResolveLeakAlertUseCase`, `EvaluateScheduledAlertsUseCase` (cada 15 min: F1, F5).
-- Listeners: `WorkOrderCancelled` → F2, `SerialRejected` → F6, desfase de caja → F3, F4 por `OrdersApi.inconsistentZeroTotalOrders`.
-- **Pruebas primero:** P9 (esperado = Σ efectivo no anulado), límite tolerancia (= tolerancia balanced, +1 desbalanceado), día en `America/Bogota` (23:59:59 vs 00:00:00), umbral F1 (−1 min, exacto, +1 min), cuadre cerrado no se edita, reabrir con motivo auditado.
+### T2 — `cashdesk` (UC-17..19, spec §5.6)
+- Casos de uso: `CloseCashCountUseCase`, `ReopenCashCountUseCase`, `ResolveLeakAlertUseCase` y `EvaluateScheduledAlertsUseCase`, que corre cada 15 min con `@Scheduled` y genera F1 y F5.
+- Listeners: `WorkOrderCancelled` → F2, desfase de caja → F3, `OrdersApi.inconsistentZeroTotalOrders()` → F4, `SerialRejected` → F6. Son idempotentes gracias a `dedupe_key`.
+- Web: `CashdeskRoutes`/`CashdeskHandler` (rutas de §9). **Solo el dueño**: el mecánico y la recepción reciben `403`.
+- **Pruebas:** P9 con jqwik (el esperado es Σ del efectivo no anulado). Límites de RN-52: diferencia igual a la tolerancia → BALANCED; tolerancia + 1 → UNBALANCED. Un pago a las 23:59:59 y otro a las 00:00:00 en `America/Bogota` caen en días distintos. RN-32: −1 min, exacto y +1 min. Un cuadre cerrado no se edita; al reabrirlo se exige un motivo y queda auditado.
+- Commit: `feat(cashdesk): cash count, leak alerts F1–F6 and scheduler`.
 
-### T3 — Portal del propietario (UC-20, UC-21)
-- `ClaimMotorcycleUseCase` (código de 8 caracteres, un uso, 30 días), `TransferOwnershipUseCase` / `AcceptOwnershipTransferUseCase` (entrada `OWNERSHIP_TRANSFER` sin nombres).
-- **Pruebas primero:** un solo propietario activo (índice único), código usado/vencido/ inexistente indistinguibles, el dueño anterior pierde acceso a entradas futuras.
+### T3 — Portal del propietario (UC-20, UC-21, spec §5.9)
+- `ClaimMotorcycleUseCase`: código de 8 caracteres, un solo uso, vigencia de 30 días.
+- `TransferOwnershipUseCase` y `AcceptOwnershipTransferUseCase`: generan una entrada `OWNERSHIP_TRANSFER` sin nombres.
+- Rol `OWNER` en las rutas `/owner/**`.
+- **Pruebas:** hay un solo propietario activo (índice único). Un código usado, vencido o inexistente da exactamente la misma respuesta. El dueño anterior pierde acceso a las entradas futuras.
 
-### T4 — Matriz de acceso rol × endpoint y seguridad OWASP
-- Prueba parametrizada de toda la matriz de spec §3.1 (`2xx`/`403`/`404`).
-- Un test por categoría de spec §13.2 (A01..A10); documento `docs/owasp-top10.md` que mapea control → prueba → archivo.
+### T4 — Contrato para el frontend
+- `docs/api.md` (ver «Contrato con el frontend»), con el catálogo completo de `code` → significado.
+- **Prueba:** recorre los `RouterFunction` registrados y falla si alguna ruta no aparece en `docs/api.md`.
+- Se le entrega al compañero del frontend junto con la colección de ejemplos (`curl`/HTTP file).
 
-### T5 — PostgreSQL real: RLS, usuario sin privilegios (Docker al final)
-- Migración Postgres-only (`db/postgres/`) con `ENABLE ROW LEVEL SECURITY` + políticas por `app.workshop_id`; usuario de aplicación distinto al dueño de las tablas; AOP que hace `SET LOCAL`.
-- Pruebas Testcontainers: aislamiento entre talleres aun enviando IDs ajenos; concurrencia de seriales y entregas sobre Postgres real.
+### T5 — Arquitectura: ArchUnit + Spring Modulith
+Ya existen en `ArchitectureTest`: `verify()`, sin `@RestController`, `@Transactional` solo en `application`, handlers sin transacción, dominio sin capas externas, handlers sin repositorios y nombres `*UseCase`.
 
-### T6 — Documentación y datos de desarrollo
-- `README.md` (arranque, variables, honestidad de la firma: integridad ≠ no repudio), `docs/decisiones/` (ADRs: `OrderDelivered` en `shared.events`, serial por savepoint JDBC, límites en memoria en lugar de Bucket4j, SBOM con Trivy), `docs/amenazas.md`.
-- Semilla de dev (2 talleres, 1 admin, 5 motos con historial) en perfil `dev`.
+Reglas por agregar:
+- `web` solo depende de `application` del propio módulo y de `shared.web`.
+- Sin `System.out`/`System.err`/`printStackTrace` (A09); sin `java.util.Random` en el código de producción, solo `SecureRandom` (§13.3).
+- Sin `java.sql.Statement`/`createNativeQuery` con concatenación; solo consultas parametrizadas (A05).
+- Los listeners de eventos (`@ApplicationModuleListener`) viven en `application`.
+- Los eventos públicos de cada módulo son `record` inmutables.
 
-### T7 — Cierre de calidad
-- Subir umbral PIT hacia 75–85 % (`history`), TOTP para admin (o ADR de aplazamiento), `./gradlew build` y pipeline completo en verde.
+**Pruebas:** cada regla nueva lleva un caso de violación a propósito (una clase de fixture en `src/test`) que demuestra que la regla falla. Además, `Documenter` regenera `docs/modulos/*.puml`.
 
-## Foco de revisión (lo que la spec implica y aún no prueba una tarea)
+### T6 — OWASP Top 10:2025 (spec §13.2)
+Entregable: `docs/owasp-top10.md`, con una tabla **categoría → control → prueba automática → archivo**. Debe haber al menos una prueba por categoría:
 
-- Diagnóstico libre con datos personales escritos por el mecánico (RN-22): hoy no hay filtro; documentar y valorar un aviso en la UI.
-- Entrega con taller suspendido entre el pago y el evento: la entrada se registra igual; confirmar el criterio en un ADR.
-- `X-Forwarded-For` detrás de proxy: el límite por IP hoy usa `remoteAddr`.
-- Reintento de listeners con la cadena sin `INITIAL_REGISTRATION` todavía: se reintenta, pero falta prueba explícita.
-- Rotación de la KEK (`kek_version`) sin prueba de rotación.
+| Cat. | Prueba |
+|---|---|
+| A01 Broken Access Control | Matriz parametrizada **rol × endpoint** de §3.1 (`2xx`/`403`/`404`) que cubre todos los módulos; IDs de otro taller → `404`; el servidor nunca visita URLs leídas de un QR (RN-95) |
+| A02 Security Misconfiguration | Encabezados de seguridad presentes; Actuator expone solo `health`; perfil `prod` sin credenciales por defecto |
+| A03 Supply Chain | CI: dependency verification de Gradle, SBOM, Trivy (por SHA + checksum) y Grype; actions fijadas por SHA |
+| A04 Cryptographic Failures | Hash Argon2id; tokens guardados solo como hash; comparación en tiempo constante; nonce único en AES-GCM |
+| A05 Injection | Búsqueda de clientes y placa con `' OR 1=1 --` y unicode raro → sin efecto y `422`; regla ArchUnit de T5 |
+| A06 Insecure Design | Enmiendas en lugar de ediciones; fail closed en la firma |
+| A07 Authentication Failures | Bloqueo progresivo por cuenta e IP; rotación del ID de sesión al iniciar sesión; contraseña común o de menos de 12 caracteres rechazada |
+| A08 Integrity Failures | Alterar un byte de la cadena → `INVALID`; idempotencia de `OrderDelivered` |
+| A09 Logging & Alerting | Un appender de captura comprueba que tras login, registro y cliente los logs no contienen contraseña, correo, teléfono, cédula, token ni código; una verificación `INVALID` deja log y alerta |
+| A10 Exceptional Conditions | Excepción interna forzada → Problem Details genérico sin stack; llave o BD caída al verificar → `UNVERIFIABLE` |
 
-## Decisiones ya tomadas que se apartan de la spec (a registrar como ADR)
+En CI: ZAP baseline contra `docker compose`, sin alertas altas.
+
+### T7 — SonarQube
+- `sonar-project.properties` y el paso de CI con `sonar.qualitygate.wait=true` **ya existen**. Faltan el servidor y la evidencia.
+- Opción local: `docker run -d -p 9000:9000 sonarqube:community`, crear el token y luego `./gradlew test jacocoTestReport` + `sonar-scanner` (o la acción del CI con `SONAR_TOKEN`/`SONAR_HOST_URL`). Otra opción es SonarCloud, gratis para repos públicos.
+- **Quality Gate meta:** 0 bugs, 0 vulnerabilidades, 100 % de hotspots revisados (con justificación en Sonar), cobertura de código nuevo ≥ 80 %, duplicación < 3 %, calificación A en mantenibilidad, confiabilidad y seguridad.
+- Se corrigen los *code smells* críticos y mayores; los falsos positivos se marcan con justificación, nunca con un `//NOSONAR` sin explicación.
+- Evidencia para la entrega: captura del Quality Gate en verde y un enlace en el README.
+
+### T8 — PostgreSQL real: RLS y usuario sin privilegios (spec §8.2, §15.6)
+- Migración solo para Postgres (`db/postgres/`) con `ENABLE ROW LEVEL SECURITY` y políticas por `app.workshop_id`. El usuario de la aplicación es distinto del dueño de las tablas. Un AOP hace `SET LOCAL`.
+- Pruebas con Testcontainers: aislamiento entre talleres aun enviando IDs ajenos; concurrencia de seriales (exactamente uno gana, el otro recibe un rechazo genérico + F6) y de entregas (`seq` sin duplicados).
+
+### T9 — Cierre de calidad y documentación
+- PIT: el alcance de §15.4 suma `cashdesk.domain`. Umbral de 70 → **75 %** global y meta de **85 %** en `history`. Cada mutante sobreviviente lleva una prueba o una nota de por qué es equivalente.
+- Diferenciales: D2 (JDK vs. BouncyCastle) y D3 (vectores de RFC 8785). D1 (verificador en Python) si alcanza el tiempo.
+- TOTP para el admin, o un ADR que lo aplaza a la fase 2.
+- `README.md`: arranque, variables (`.env.example`), cómo correr Sonar y PIT, y la nota honesta de que la firma da integridad, no no-repudio.
+- `docs/decisiones/` con los ADRs de la lista de abajo y `docs/amenazas.md` (STRIDE §13.1).
+- Semilla `dev`: 2 talleres (uno verificado y uno pendiente), 1 admin y 5 motos con historial.
+
+## Definición de terminado de la entrega
+
+- [ ] `./gradlew build` en verde, incluidos `Modulith verify` y todas las reglas ArchUnit.
+- [ ] Consola de VS Code sin errores ni advertencias.
+- [ ] Cobertura JaCoCo ≥ 85 % de líneas; PIT ≥ 75 % (85 % en `history`).
+- [ ] Propiedades P1–P12 y límites de §15.3 cubiertos.
+- [ ] Quality Gate de SonarQube en verde, con captura.
+- [ ] `docs/owasp-top10.md` completo, con una prueba por categoría.
+- [ ] Pipeline completo en verde: gitleaks, Semgrep/CodeQL, SBOM, Trivy + Grype, ZAP, cosign.
+- [ ] `docs/api.md` entregado al frontend y la semilla `dev` funcionando con `docker compose up`.
+
+## Foco de revisión (lo que la spec implica y ninguna tarea prueba todavía)
+
+- El diagnóstico libre puede llevar datos personales escritos por el mecánico (RN-22). Hoy no hay filtro: documentarlo y pedirle al frontend un aviso en la UI.
+- Si el taller queda suspendido entre el pago y el evento de entrega, la entrada se registra igual. Hay que confirmar el criterio en un ADR.
+- `X-Forwarded-For` detrás de un proxy: el límite por IP hoy usa `remoteAddr`.
+- Reintento de listeners cuando la cadena aún no tiene `INITIAL_REGISTRATION`: se reintenta, pero falta una prueba explícita.
+- Rotación de la KEK (`kek_version`) sin prueba.
+
+## Decisiones que se apartan de la spec (a registrar como ADR)
 
 1. `OrderDelivered` vive en `shared.events` para evitar el ciclo `orders ↔ history`.
-2. `orders` cierra la recepción llamando a `IntakeApi` en la misma transacción (en vez de evento asíncrono).
-3. `orders` libera seriales al cancelar llamando a `CatalogApi` (evita ciclo `catalog → orders`).
-4. Ajustes de `workshops` como columnas tipadas, no `settings_jsonb`.
-5. Contenido de historial guardado como texto canónico JCS (exactamente lo hasheado), no `jsonb`.
-6. Índice único parcial de seriales y de propietario activo emulados con columna anulable + `UNIQUE` (portable H2/Postgres).
-7. Límite de intentos en memoria propio (`RateLimiter`) en vez de Bucket4j; SBOM con Trivy en vez de plugin CycloneDX.
-8. Invitaciones devuelven el token una vez al dueño (sin correo/Mailpit por ahora).
+2. `orders` cierra la recepción llamando a `IntakeApi` en la misma transacción, en lugar de un evento asíncrono.
+3. `orders` libera seriales al cancelar llamando a `CatalogApi`, para evitar el ciclo `catalog → orders`.
+4. Los ajustes de `workshops` son columnas tipadas, no `settings_jsonb`.
+5. El contenido del historial se guarda como texto canónico JCS (exactamente lo que se hashea), no como `jsonb`.
+6. Los índices únicos parciales de seriales y de propietario activo se emulan con una columna anulable + `UNIQUE` (portable entre H2 y Postgres).
+7. Límite de intentos en memoria propio (`RateLimiter`) en lugar de Bucket4j; SBOM con Trivy en lugar del plugin CycloneDX.
+8. Las invitaciones le devuelven el token al dueño una sola vez (por ahora sin correo ni Mailpit).
+9. Contrato HTTP en `docs/api.md` escrito a mano, validado por una prueba, en lugar de OpenAPI: springdoc con `RouterFunction` obliga a anotar cada ruta.

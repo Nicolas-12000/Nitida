@@ -17,7 +17,6 @@ import org.springframework.http.HttpMethod;
 
 class MotorcyclesIntegrationTest extends IntegrationTest {
     private static final MotorcycleDetails DETAILS = new MotorcycleDetails("Yamaha", "FZ 2.0", 2022, 150);
-    private static final String VIN = "9C2JC4010NR000001";
 
     @Autowired MotorcyclesApi api;
 
@@ -74,9 +73,9 @@ class MotorcyclesIntegrationTest extends IntegrationTest {
         var owner = registerAndLogin();
         UUID ws = createWorkshop(owner);
         post("/api/v1/customers", owner, ws, customerBody("Ana Gómez", false, "2026-1"))
-                .andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.code").value("CONSENT_REQUIRED"));
+                .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.code").value("CONSENT_REQUIRED"));
         post("/api/v1/customers", owner, ws, customerBody("Ana Gómez", true, "1999-1"))
-                .andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.code").value("STALE_POLICY"));
+                .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.code").value("STALE_POLICY"));
         assertThat(jdbc.sql("SELECT count(*) FROM motorcycles.customer WHERE workshop_id = ?").param(ws).query(Long.class).single()).isZero();
         post("/api/v1/customers", owner, ws, customerBody("Ana Gómez", true, "2026-1")).andExpect(status().isCreated());
         assertThat(jdbc.sql("SELECT count(*) FROM motorcycles.data_consent WHERE workshop_id = ?").param(ws).query(Long.class).single()).isEqualTo(1L);
@@ -90,7 +89,7 @@ class MotorcyclesIntegrationTest extends IntegrationTest {
         post("/api/v1/customers", mechanic, ws, customerBody("Ana Gómez", true, "2026-1")).andExpect(status().isForbidden());
         post("/api/v1/customers", owner, ws, customerBody("Ana Gómez", true, "2026-1")).andExpect(status().isCreated());
         get("/api/v1/customers?q=gómez", mechanic, ws).andExpect(status().isOk()).andExpect(jsonPath("$[0].fullName").value("Ana Gómez"));
-        get("/api/v1/customers?q=a", mechanic, ws).andExpect(status().isUnprocessableEntity());
+        get("/api/v1/customers?q=a", mechanic, ws).andExpect(status().isUnprocessableContent());
     }
 
     @Test

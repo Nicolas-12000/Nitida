@@ -48,7 +48,7 @@ class FilesIntegrationTest extends IntegrationTest {
     void fakePhotoIsRejectedAndMissingPartIsABadRequest() throws Exception {
         var owner = registerAndLogin();
         UUID ws = createWorkshop(owner);
-        upload(owner, ws, "foto.jpg", "<?php echo 1; ?>".getBytes()).andExpect(status().isUnprocessableEntity())
+        upload(owner, ws, "foto.jpg", "<?php echo 1; ?>".getBytes()).andExpect(status().isUnprocessableContent())
                 .andExpect(jsonPath("$.code").value("INVALID_IMAGE"));
         mvc.perform(multipart("/api/v1/files").part(part("other", "x.jpg", new byte[] {1}))
                 .with(csrf()).cookie(owner.cookie()).header("X-Workshop-Id", ws.toString()))

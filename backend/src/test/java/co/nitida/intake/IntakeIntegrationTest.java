@@ -55,7 +55,7 @@ class IntakeIntegrationTest extends IntegrationTest {
         var b = registerAndLogin();
         UUID wsA = createWorkshop(a);
         UUID wsB = createWorkshop(b);
-        post("/api/v1/intakes", a, wsA, body("INC11C", 10, null, null)).andExpect(status().isUnprocessableEntity())
+        post("/api/v1/intakes", a, wsA, body("INC11C", 10, null, null)).andExpect(status().isUnprocessableContent())
                 .andExpect(jsonPath("$.code").value("PHOTO_REQUIRED"));
         UUID foreign = uploadPhoto(b, wsB);
         post("/api/v1/intakes", a, wsA, body("INC11C", 10, foreign, uploadPhoto(a, wsA))).andExpect(status().isNotFound());
