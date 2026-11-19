@@ -1,9 +1,12 @@
 name: CodeQL
 
+# Only Java is analyzed: skip runs that cannot change the result (a frontend-only PR). The weekly run covers the rest.
 on:
   push:
     branches: [main]
+    paths: ['backend/**', '.github/workflows/codeql.yml']
   pull_request:
+    paths: ['backend/**', '.github/workflows/codeql.yml']
   schedule:
     - cron: '23 4 * * 1'
 

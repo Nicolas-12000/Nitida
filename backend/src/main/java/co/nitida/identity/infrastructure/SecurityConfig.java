@@ -1,6 +1,7 @@
 package co.nitida.identity.infrastructure;
 
 import co.nitida.shared.web.ProblemResponses;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -16,6 +17,7 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
+import org.springframework.session.web.http.DefaultCookieSerializer;
 
 @Configuration
 class SecurityConfig {
@@ -23,6 +25,20 @@ class SecurityConfig {
     @Bean
     PasswordEncoder passwordEncoder() {
         return Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
+    }
+
+    /**
+     * The session cookie, explicit on purpose: relying on the server.servlet.session.cookie.* mapping left it without
+     * HttpOnly and SameSite (caught by OwaspSecurityTest). Secure stays configurable for plain-HTTP local runs.
+     */
+    @Bean
+    DefaultCookieSerializer cookieSerializer(@Value("${server.servlet.session.cookie.secure:true}") boolean secure) {
+        var serializer = new DefaultCookieSerializer();
+        serializer.setCookieName("SESSION");
+        serializer.setUseHttpOnlyCookie(true);
+        serializer.setUseSecureCookie(secure);
+        serializer.setSameSite("Lax");
+        return serializer;
     }
 
     @Bean
