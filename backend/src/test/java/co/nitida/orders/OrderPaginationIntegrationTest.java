@@ -7,7 +7,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import co.nitida.support.OrderFlowTest;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 /** Listings page by cursor: stable, no gaps, no repeats; the array response stays the same (spec §9). */

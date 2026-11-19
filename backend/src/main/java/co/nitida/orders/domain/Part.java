@@ -51,7 +51,7 @@ public class Part extends AssignedIdEntity {
     public Part(UUID id, String name, String reference, String brand, PartCondition condition, int quantity, long unitPrice,
                 String productCode, String codeType, UUID replacementPhotoId) {
         super(id);
-        this.name = Texts.requireLength(name, 2, 120, "INVALID_PART", "El nombre del repuesto debe tener entre 2 y 120 caracteres");
+        this.name = Texts.requirePublic(name, 2, 120, "INVALID_PART", "El nombre del repuesto debe tener entre 2 y 120 caracteres");
         this.reference = Texts.blankToNull(reference);
         this.brand = Texts.requireLength(brand, 1, 60, "INVALID_PART", "La marca del repuesto es obligatoria");
         if (condition == null) throw ApiException.unprocessable("INVALID_PART", "Indique la condición del repuesto (OEM, alterno o usado)");

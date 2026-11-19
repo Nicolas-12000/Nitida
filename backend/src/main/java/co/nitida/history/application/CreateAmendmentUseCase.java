@@ -37,9 +37,9 @@ public class CreateAmendmentUseCase {
     public Result execute(Command c) {
         c.ctx().require(Role.WORKSHOP_OWNER, Role.MECHANIC);
         var workshop = workshops.requireActive(c.ctx().workshopId());
-        String reason = Texts.requireLength(c.reason(), 10, 500, "INVALID_REASON", "El motivo debe tener entre 10 y 500 caracteres");
+        String reason = Texts.requirePublic(c.reason(), 10, 500, "INVALID_REASON", "El motivo debe tener entre 10 y 500 caracteres");
         String diagnosis = c.diagnosis() == null ? null
-                : Texts.requireLength(c.diagnosis(), 10, 2000, "INVALID_DIAGNOSIS", "El diagnóstico debe tener entre 10 y 2000 caracteres");
+                : Texts.requirePublic(c.diagnosis(), 10, 2000, "INVALID_DIAGNOSIS", "El diagnóstico debe tener entre 10 y 2000 caracteres");
         Integer mileage = c.mileage() == null ? null : new Mileage(c.mileage()).km();
         if (diagnosis == null && mileage == null) {
             throw ApiException.unprocessable("NOTHING_TO_AMEND", "Indique al menos un campo a corregir");

@@ -42,7 +42,7 @@ public class DeclareOdometerChangeUseCase {
         var workshop = workshops.requireActive(c.ctx().workshopId());
         if (!intakes.hasReceived(c.ctx().workshopId(), c.motorcycleId())) throw ApiException.notFound();
         var mileage = new Mileage(c.newMileage());
-        String reason = Texts.requireLength(c.reason(), 10, 500, "INVALID_REASON", "El motivo debe tener entre 10 y 500 caracteres");
+        String reason = Texts.requirePublic(c.reason(), 10, 500, "INVALID_REASON", "El motivo debe tener entre 10 y 500 caracteres");
         if (c.photoFileId() == null) throw ApiException.unprocessable("PHOTO_REQUIRED", "Se requiere la foto del nuevo tablero");
         String photoHash = files.sha256(c.photoFileId(), c.ctx().workshopId());
         var entry = appender.append(c.motorcycleId(), EntryType.ODOMETER_CHANGE, c.ctx().workshopId(), null,

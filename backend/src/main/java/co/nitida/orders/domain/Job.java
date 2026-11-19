@@ -25,7 +25,7 @@ public class Job extends AssignedIdEntity {
         super(id);
         if (type == null) throw ApiException.unprocessable("INVALID_JOB", "Indique el tipo de trabajo");
         this.type = type;
-        this.description = Texts.requireLength(description, 3, 500, "INVALID_JOB", "La descripción del trabajo debe tener entre 3 y 500 caracteres");
+        this.description = Texts.requirePublic(description, 3, 500, "INVALID_JOB", "La descripción del trabajo debe tener entre 3 y 500 caracteres");
     }
 
     public JobType getType() { return type; }

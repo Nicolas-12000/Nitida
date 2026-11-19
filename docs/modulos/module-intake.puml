@@ -26,13 +26,13 @@ System_Boundary("NitidaApplication_boundary", "NitidaApplication", $tags="") {
 
 }
 
-Rel(NitidaApplication.NitidaApplication.Workshops, NitidaApplication.NitidaApplication.Shared, "uses", $techn="", $tags="", $link="")
-Rel(NitidaApplication.NitidaApplication.Motorcycles, NitidaApplication.NitidaApplication.Shared, "uses", $techn="", $tags="", $link="")
 Rel(NitidaApplication.NitidaApplication.Intake, NitidaApplication.NitidaApplication.Motorcycles, "uses", $techn="", $tags="", $link="")
 Rel(NitidaApplication.NitidaApplication.Intake, NitidaApplication.NitidaApplication.Shared, "uses", $techn="", $tags="", $link="")
 Rel(NitidaApplication.NitidaApplication.Intake, NitidaApplication.NitidaApplication.Workshops, "uses", $techn="", $tags="", $link="")
 Rel(NitidaApplication.NitidaApplication.Intake, NitidaApplication.NitidaApplication.Files, "uses", $techn="", $tags="", $link="")
+Rel(NitidaApplication.NitidaApplication.Motorcycles, NitidaApplication.NitidaApplication.Shared, "uses", $techn="", $tags="", $link="")
 Rel(NitidaApplication.NitidaApplication.Files, NitidaApplication.NitidaApplication.Shared, "depends on", $techn="", $tags="", $link="")
+Rel(NitidaApplication.NitidaApplication.Workshops, NitidaApplication.NitidaApplication.Shared, "uses", $techn="", $tags="", $link="")
 
 SHOW_LEGEND(true)
 hide stereotypes

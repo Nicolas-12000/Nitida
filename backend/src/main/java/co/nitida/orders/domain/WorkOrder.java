@@ -102,7 +102,7 @@ public class WorkOrder extends AssignedIdEntity {
     }
 
     private static String validDiagnosis(String d) {
-        return Texts.requireLength(d, 10, 2000, "INVALID_DIAGNOSIS", "El diagnóstico debe tener entre 10 y 2000 caracteres");
+        return Texts.requirePublic(d, 10, 2000, "INVALID_DIAGNOSIS", "El diagnóstico debe tener entre 10 y 2000 caracteres");
     }
 
     /** RN-46: editable until delivered (a cancelled order is closed too). */

@@ -140,6 +140,7 @@ Columnas: **Ctx** `T` = lleva `X-Workshop-Id` · **Roles** quién puede.
 | `INTAKE_ALREADY_OPEN` · `INTAKE_NOT_OPEN` · `PHOTO_REQUIRED` · `INVALID_PHOTO` | 409 / 422 | Recepción |
 | `CONSENT_REQUIRED` · `STALE_POLICY` · `INVALID_PHONE` · `INVALID_NATIONAL_ID` · `QUERY_TOO_SHORT` | 422 | Clientes |
 | `INVALID_TRANSITION` · `ORDER_NOT_EDITABLE` · `JOBS_REQUIRED` · `INVALID_JOB` · `INVALID_WARRANTY` · `CUSTOMER_REQUIRED` · `DETAILS_REQUIRED` | 409 / 422 | Órdenes |
+| `PERSONAL_DATA` | 422 | Un texto que se vuelve público en el historial (diagnóstico, descripción de trabajos, nombre de repuesto, motivos de enmienda y de cambio de tablero) lleva un correo, un teléfono o una cédula (8 o más dígitos seguidos). El frontend debe avisarlo al escribir, no solo traducir el error |
 | `INVALID_PART` · `INVALID_QUANTITY` · `INVALID_AMOUNT` · `INVALID_SERIAL` · `SERIAL_NOT_ACTIVE` · `INVALID_PRODUCT_CODE` | 422 | Repuestos, seriales y catálogo |
 | `INVALID_METHOD` · `OVERPAYMENT` · `INCOMPLETE_PAYMENTS` · `PAYMENT_ALREADY_VOIDED` | 422 / 409 | Pagos y entrega |
 | `FILE_REQUIRED` · `FILE_TOO_LARGE` · `INVALID_IMAGE` | 422 | Archivos |

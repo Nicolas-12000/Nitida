@@ -2686,7 +2686,12 @@ components:
       properties:
         intakeId: { $ref: '#/components/schemas/Uuid' }
         customerId: { $ref: '#/components/schemas/Uuid' }
-        diagnosis: { type: string, minLength: 10, maxLength: 2000 }
+        diagnosis:
+          type: string
+          minLength: 10
+          maxLength: 2000
+          description: |
+            Por qué entra la moto. **Texto público (RN-22):** va al historial firmado e inmutable; sin correos, teléfonos ni cédulas (8 o más dígitos seguidos) → `422 PERSONAL_DATA`.
         mechanicId: { $ref: '#/components/schemas/Uuid' }
         warrantyOfOrderId: { $ref: '#/components/schemas/Uuid' }
 

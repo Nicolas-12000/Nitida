@@ -56,7 +56,7 @@ Entregable: **`docs/api.md`** (T4), escrito a mano. Por cada endpoint de la spec
 | 5 | `cashdesk`, seriales globales | **Hecha** (T2): cuadre, alertas F1–F6, listeners y scheduler |
 | 6 | Portal del propietario | **Hecha en el back** (T3): reclamar, traspasar, historial y links del propietario. E2E Playwright = frontend |
 
-Calidad al último commit: 436 pruebas en verde; cobertura JaCoCo 96,5 % de líneas y 82 % de ramas (el build exige 90 % y 75 %); mutación PIT 91 % (el build exige 85 %); `Modulith verify`, ArchUnit (arquitectura + seguridad) y matriz de acceso en verde.
+Calidad al último commit: 450 pruebas en verde; cobertura JaCoCo 96,5 % de líneas y 82 % de ramas (el build exige 90 % y 75 %); mutación PIT 91 % (el build exige 85 %); `Modulith verify`, ArchUnit (arquitectura + seguridad) y matriz de acceso en verde.
 
 ## Checklist del MVP contra la spec
 
@@ -67,7 +67,7 @@ Marcado = hecho y con prueba. Orden sugerido para la entrega: RLS → contrato �
 - [x] Reglas núcleo: estados de OT, pagos y anulación, entrega con código de reclamación, cadena JCS/Ed25519, enmiendas, odómetro, links, cuadre por día de Bogotá, alertas, seriales globales, evidencia, taller suspendido o pendiente dentro del contenido firmado
 - [x] RN-82 traspaso firmado por la identidad de plataforma (sin nombres); el dueño anterior no ve entradas posteriores
 - [x] RN-14 cambio de placa por API: `PATCH /motorcycles/{id}/plate` (la moto conserva su id; la placa anterior queda en el historial de placas)
-- [ ] RN-22 diagnóstico libre puede llevar PII escrita por el mecánico: documentar y pedir aviso en la UI
+- [x] RN-22: el texto libre que se vuelve público (diagnóstico, trabajos, repuestos, enmiendas, cambio de tablero) rechaza correos, teléfonos y cédulas con `422 PERSONAL_DATA` (`Texts.requirePublic`). Al frontend le toca avisar mientras se escribe
 
 ### Aislamiento entre talleres (§8.2) — el hueco más grande
 - [x] Barrera de aplicación: `WorkshopContext` validado contra membresías + `404` para recursos de otro taller (`AccessMatrixTest`)
@@ -202,14 +202,14 @@ En CI: ZAP pasivo contra cada operación de `docs/openapi.yaml` (`.zap/plan.yaml
 
 ## Definición de terminado de la entrega
 
-- [ ] `./gradlew build` en verde, incluidos `Modulith verify` y todas las reglas ArchUnit.
-- [ ] Consola de VS Code sin errores ni advertencias.
-- [ ] Cobertura JaCoCo ≥ 85 % de líneas; PIT ≥ 75 % (85 % en `history`).
+- [x] `./gradlew build` en verde, incluidos `Modulith verify` y todas las reglas ArchUnit (450 pruebas).
+- [x] Consola de VS Code sin errores ni advertencias.
+- [x] Cobertura JaCoCo ≥ 85 % de líneas (96 %); PIT ≥ 75 % (91 %, `history.domain` ≥ 85 %).
 - [ ] Propiedades P1–P12 y límites de §15.3 cubiertos.
 - [ ] Quality Gate de SonarQube en verde, con captura.
-- [ ] `docs/owasp-top10.md` completo, con una prueba por categoría.
+- [x] `docs/owasp-top10.md` completo, con una prueba por categoría.
 - [ ] Pipeline completo en verde: gitleaks, Semgrep/CodeQL, SBOM, Trivy, ZAP, cosign.
-- [ ] `docs/api.md` entregado al frontend y la semilla `dev` funcionando con `docker compose up`.
+- [x] `docs/api.md` + `docs/openapi.yaml` listos para el frontend; semilla `dev` probada (`DevSeedIntegrationTest`). Falta probar `docker compose up` de verdad (sin Docker aquí).
 
 ## Foco de revisión (lo que la spec implica y ninguna tarea prueba todavía)
 
