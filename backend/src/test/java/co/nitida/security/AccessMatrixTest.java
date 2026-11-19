@@ -53,6 +53,7 @@ class AccessMatrixTest extends OrderFlowTest {
                 row(HttpMethod.POST, "/api/v1/intakes", ALL),
                 row(HttpMethod.POST, "/api/v1/intakes/" + ID + "/discard", ALL),
                 row(HttpMethod.GET, "/api/v1/intakes", ALL),
+                row(HttpMethod.PATCH, "/api/v1/motorcycles/" + ID + "/plate", OWNER_DESK),
                 // clientes
                 row(HttpMethod.POST, "/api/v1/customers", OWNER_DESK),
                 row(HttpMethod.PATCH, "/api/v1/customers/" + ID, OWNER_DESK),

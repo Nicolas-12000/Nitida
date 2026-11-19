@@ -16,6 +16,7 @@ class IntakeRoutes {
                         .POST("", h::register)
                         .GET("", h::list)
                         .POST("/{id}/discard", h::discard))
+                .PATCH("/api/v1/motorcycles/{id}/plate", h::changePlate)
                 .build();
     }
 }

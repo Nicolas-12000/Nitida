@@ -59,6 +59,7 @@ Columnas: **Ctx** `T` = lleva `X-Workshop-Id` · **Roles** quién puede.
 | `PATCH /api/v1/customers/{id}` | T | O R | `{fullName, phone, nationalId, email}` | cliente actualizado |
 | `POST /api/v1/customers/{id}/erasure` | T | O | — | `204`; anonimiza (Ley 1581), el historial no cambia |
 | `GET /api/v1/motorcycles/lookup` | T | O M R | `?plate=` o `?vin=` | moto o `404` |
+| `PATCH /api/v1/motorcycles/{id}/plate` | T | O R | `{plate}` | `204`. RN-14: la moto conserva su id y la placa anterior queda en el historial de placas; solo un taller que la recibió (otro → `404`); `422 INVALID_PLATE`, `409 PLATE_IN_USE` |
 
 ### Órdenes de trabajo, repuestos y pagos
 
@@ -133,7 +134,7 @@ Columnas: **Ctx** `T` = lleva `X-Workshop-Id` · **Roles** quién puede.
 | `WORKSHOP_REQUIRED` / `INVALID_WORKSHOP_ID` | 400 | Falta o es inválido `X-Workshop-Id` |
 | `WORKSHOP_SUSPENDED` | 423 | El taller suspendido no crea registros nuevos |
 | `WEAK_PASSWORD` · `INVALID_EMAIL` · `EMAIL_TAKEN` · `INVALID_CREDENTIALS` | 422 / 409 / 401 | Registro e inicio de sesión |
-| `INVALID_PLATE` · `INVALID_VIN` · `PLATE_VIN_MISMATCH` · `IDENTIFIER_REQUIRED` · `INVALID_MODEL_YEAR` · `INVALID_DISPLACEMENT` | 422 | Identidad de la moto |
+| `INVALID_PLATE` · `PLATE_IN_USE` · `INVALID_VIN` · `PLATE_VIN_MISMATCH` · `IDENTIFIER_REQUIRED` · `INVALID_MODEL_YEAR` · `INVALID_DISPLACEMENT` | 422 | Identidad de la moto |
 | `INVALID_MILEAGE` · `MILEAGE_REGRESSION` | 422 | Kilometraje fuera de rango o menor al anterior |
 | `INTAKE_ALREADY_OPEN` · `INTAKE_NOT_OPEN` · `PHOTO_REQUIRED` · `INVALID_PHOTO` | 409 / 422 | Recepción |
 | `CONSENT_REQUIRED` · `STALE_POLICY` · `INVALID_PHONE` · `INVALID_NATIONAL_ID` · `QUERY_TOO_SHORT` | 422 | Clientes |

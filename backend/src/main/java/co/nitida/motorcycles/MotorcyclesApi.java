@@ -31,6 +31,12 @@ public interface MotorcyclesApi {
 
     boolean customerBelongsTo(UUID customerId, UUID workshopId);
 
+    /**
+     * RN-14: the motorcycle keeps its id, the old plate is closed in the plate history. Same plate: nothing happens.
+     * 422 INVALID_PLATE, 409 PLATE_IN_USE if it belongs to another motorcycle.
+     */
+    void changePlate(UUID motorcycleId, String plate);
+
     /** When the user owned the motorcycle; {@code to} is null while they still own it. */
     record OwnershipPeriod(java.time.Instant from, java.time.Instant to) {
         public boolean active() { return to == null; }

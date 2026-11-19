@@ -1,6 +1,7 @@
 package co.nitida.intake.web;
 
 import co.nitida.intake.IntakeApi;
+import co.nitida.intake.application.ChangeMotorcyclePlateUseCase;
 import co.nitida.intake.application.DiscardIntakeUseCase;
 import co.nitida.intake.application.RegisterIntakeUseCase;
 import co.nitida.intake.domain.DiscardReason;
@@ -21,16 +22,21 @@ class IntakeHandler {
 
     record DiscardRequest(DiscardReason reason) {}
 
+    record PlateRequest(String plate) {}
+
     record IntakeView(UUID id, UUID motorcycleId, String plate, String brand, String line, int mileage, Instant createdAt) {}
 
     private final RegisterIntakeUseCase register;
     private final DiscardIntakeUseCase discard;
+    private final ChangeMotorcyclePlateUseCase changePlate;
     private final IntakeApi intakes;
     private final MotorcyclesApi motorcycles;
 
-    IntakeHandler(RegisterIntakeUseCase register, DiscardIntakeUseCase discard, IntakeApi intakes, MotorcyclesApi motorcycles) {
+    IntakeHandler(RegisterIntakeUseCase register, DiscardIntakeUseCase discard, ChangeMotorcyclePlateUseCase changePlate,
+                  IntakeApi intakes, MotorcyclesApi motorcycles) {
         this.register = register;
         this.discard = discard;
+        this.changePlate = changePlate;
         this.intakes = intakes;
         this.motorcycles = motorcycles;
     }
@@ -58,6 +64,12 @@ class IntakeHandler {
     ServerResponse discard(ServerRequest req) throws Exception {
         var b = req.body(DiscardRequest.class);
         discard.execute(new DiscardIntakeUseCase.Command(WorkshopContext.current(), UUID.fromString(req.pathVariable("id")), b.reason()));
+        return ServerResponse.noContent().build();
+    }
+
+    ServerResponse changePlate(ServerRequest req) throws Exception {
+        var b = req.body(PlateRequest.class);
+        changePlate.execute(new ChangeMotorcyclePlateUseCase.Command(WorkshopContext.current(), UUID.fromString(req.pathVariable("id")), b.plate()));
         return ServerResponse.noContent().build();
     }
 }

@@ -118,4 +118,19 @@ class MotorcyclesApiImpl implements MotorcyclesApi {
         return owners.findFirstByUserIdAndMotorcycleIdOrderByValidFromDesc(userId, motorcycleId)
                 .map(o -> new OwnershipPeriod(o.getValidFrom(), o.getValidTo()));
     }
+
+    @Override
+    @Transactional
+    public void changePlate(UUID motorcycleId, String rawPlate) {
+        var m = motorcycles.findById(motorcycleId).orElseThrow(ApiException::notFound);
+        String plate = VehicleIdentifiers.plate(rawPlate).value();
+        if (plate.equals(m.getCurrentPlate())) return;
+        if (motorcycles.findByCurrentPlate(plate).isPresent()) {
+            throw ApiException.conflict("PLATE_IN_USE", "Esa placa ya está registrada en otra moto");
+        }
+        var now = clock.instant();
+        plates.findByMotorcycleIdAndValidToIsNull(motorcycleId).ifPresent(open -> open.close(now));
+        m.changePlate(plate);
+        plates.save(new PlateHistory(UuidV7.next(), motorcycleId, plate, now));
+    }
 }

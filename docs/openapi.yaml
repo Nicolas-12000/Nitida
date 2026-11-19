@@ -916,6 +916,53 @@ paths:
           $ref: '#/components/responses/InternalError'
 
 
+  /api/v1/motorcycles/{id}/plate:
+    patch:
+      tags: [motorcycles]
+      operationId: changeMotorcyclePlate
+      summary: Cambiar la placa de una moto (RN-14)
+      description: |
+        La moto conserva su `motorcycleId`; la placa anterior queda cerrada en el historial de placas.
+        Solo un taller que haya recibido la moto (otro taller → `404`) y solo dueño o recepción.
+        La misma placa no cambia nada. `422 INVALID_PLATE` si el formato no es válido; `409 PLATE_IN_USE` si ya es de otra moto.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePlateRequest'
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - workshopId: []
+      responses:
+        '204':
+          description: Placa cambiada (o ya era esa)
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
   /api/v1/motorcycles/lookup:
     get:
       tags: [motorcycles]
@@ -2573,6 +2620,15 @@ components:
         mileage: { type: integer, minimum: 0, maximum: 999999 }
         odometerPhotoId: { $ref: '#/components/schemas/Uuid' }
         motorcyclePhotoId: { $ref: '#/components/schemas/Uuid' }
+
+    ChangePlateRequest:
+      type: object
+      required: [plate]
+      properties:
+        plate:
+          type: string
+          description: Placa actual `ABC12D` o antigua `ABC12`; se normaliza (mayúsculas, sin espacios ni guiones).
+          example: ABC12D
 
     DiscardRequest:
       type: object
