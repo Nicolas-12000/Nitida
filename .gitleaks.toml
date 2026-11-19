@@ -1,0 +1,9 @@
+title = "Nitida gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Throwaway values used only by tests and CI (32 zero bytes in base64, CI-only DB password)"
+regexes = ['''AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=''', '''ci-only-password''']
+paths = ['''backend/src/test/''']

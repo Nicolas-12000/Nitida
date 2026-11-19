@@ -1,0 +1,42 @@
+# Whole stack for local runs and for the DAST job in CI. Images are pinned by digest.
+services:
+  postgres:
+    image: postgres:17-alpine@sha256:526f86d93c6ea08fd3f1fe5605650cacc781b2c6013169a0ad8f42c7d3d84f32
+    environment:
+      POSTGRES_DB: nitida
+      POSTGRES_USER: nitida
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nitida -d nitida"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    image: ${BACKEND_IMAGE:-nitida-backend:local}
+    build: ./backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/nitida
+      SPRING_DATASOURCE_USERNAME: nitida
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      NITIDA_SIGNING_KEK: ${NITIDA_SIGNING_KEK:?set NITIDA_SIGNING_KEK in .env}
+      NITIDA_COOKIE_SECURE: ${NITIDA_COOKIE_SECURE:-true}
+      SPRING_DOCKER_COMPOSE_ENABLED: "false"
+    ports:
+      - "8080:8080"
+    volumes:
+      - files:/data/files
+
+  mailpit:
+    image: axllent/mailpit:v1.21@sha256:81370195cd4a0eab9604d17c2617a7525b0486f9365555253b6c5376c6350f1a
+    ports:
+      - "8025:8025"
+
+volumes:
+  pgdata:
+  files:
