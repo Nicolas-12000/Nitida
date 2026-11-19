@@ -26,7 +26,9 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-security")
 	implementation("org.springframework.boot:spring-boot-starter-validation")
 	implementation("org.springframework.boot:spring-boot-starter-webmvc")
+	implementation("org.springframework.boot:spring-boot-starter-session-jdbc")
 	implementation("org.flywaydb:flyway-database-postgresql")
+	implementation("org.bouncycastle:bcprov-jdk18on:1.80")
 	implementation("org.springframework.modulith:spring-modulith-observability-api")
 	implementation("org.springframework.modulith:spring-modulith-starter-core")
 	implementation("org.springframework.modulith:spring-modulith-starter-jpa")
@@ -46,6 +48,8 @@ dependencies {
 	testImplementation("org.springframework.modulith:spring-modulith-starter-test")
 	testImplementation("org.testcontainers:testcontainers-junit-jupiter")
 	testImplementation("org.testcontainers:testcontainers-postgresql")
+	testImplementation("net.jqwik:jqwik:1.9.2")
+	testImplementation("com.tngtech.archunit:archunit-junit5:1.4.0")
 	testRuntimeOnly("com.h2database:h2")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
@@ -58,4 +62,6 @@ dependencyManagement {
 
 tasks.withType<Test> {
 	useJUnitPlatform()
+	// the application and its tests are Java 21, but the tests spawn nothing external
+	testLogging { events("failed"); exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL }
 }
