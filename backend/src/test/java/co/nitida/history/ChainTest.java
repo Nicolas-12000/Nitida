@@ -151,6 +151,48 @@ class ChainTest {
     }
 
     @Test
+    void recordsCompareHashesByContent() {
+        var b = build(List.of("uno"));
+        var link = b.links().get(0);
+        var sameLink = new Link(link.motorcycleId(), link.seq(), link.publicContent(),
+                link.previousHash().clone(), link.hash().clone(), link.signature().clone(), link.keyId());
+        assertThat(sameLink).isEqualTo(link);
+        assertThat(sameLink.hashCode()).isEqualTo(link.hashCode());
+        assertThat(link.toString()).contains(link.motorcycleId().toString());
+        assertThat(link).isNotEqualTo("x");
+        assertThat(new Link(UUID.randomUUID(), link.seq(), link.publicContent(), link.previousHash(), link.hash(), link.signature(), link.keyId())).isNotEqualTo(link);
+        assertThat(new Link(link.motorcycleId(), 9, link.publicContent(), link.previousHash(), link.hash(), link.signature(), link.keyId())).isNotEqualTo(link);
+        assertThat(new Link(link.motorcycleId(), link.seq(), "otro", link.previousHash(), link.hash(), link.signature(), link.keyId())).isNotEqualTo(link);
+        assertThat(new Link(link.motorcycleId(), link.seq(), link.publicContent(), new byte[] {1}, link.hash(), link.signature(), link.keyId())).isNotEqualTo(link);
+        assertThat(new Link(link.motorcycleId(), link.seq(), link.publicContent(), link.previousHash(), new byte[] {1}, link.signature(), link.keyId())).isNotEqualTo(link);
+        assertThat(new Link(link.motorcycleId(), link.seq(), link.publicContent(), link.previousHash(), link.hash(), new byte[] {1}, link.keyId())).isNotEqualTo(link);
+        assertThat(new Link(link.motorcycleId(), link.seq(), link.publicContent(), link.previousHash(), link.hash(), link.signature(), UUID.randomUUID())).isNotEqualTo(link);
+
+        var head = b.head();
+        var sameHead = new Head(head.lastSeq(), head.lastHash().clone());
+        assertThat(sameHead).isEqualTo(head);
+        assertThat(sameHead.hashCode()).isEqualTo(head.hashCode());
+        assertThat(head.toString()).contains("Head");
+        assertThat(head).isNotEqualTo("x");
+        assertThat(new Head(0, head.lastHash())).isNotEqualTo(head);
+        assertThat(new Head(head.lastSeq(), new byte[] {1})).isNotEqualTo(head);
+
+        var sealed = ChainSealer.seal(0, ChainSealer.GENESIS_HASH, seq -> java.util.Map.of("seq", seq));
+        var sameSealed = new ChainSealer.Sealed(sealed.seq(), sealed.canonicalPublicContent(), sealed.previousHash().clone(), sealed.hash().clone());
+        assertThat(sameSealed).isEqualTo(sealed);
+        assertThat(sameSealed.hashCode()).isEqualTo(sealed.hashCode());
+        assertThat(sealed.toString()).contains("Sealed");
+        assertThat(sealed).isNotEqualTo("x");
+        assertThat(new ChainSealer.Sealed(9, sealed.canonicalPublicContent(), sealed.previousHash(), sealed.hash())).isNotEqualTo(sealed);
+        assertThat(new ChainSealer.Sealed(sealed.seq(), "otro", sealed.previousHash(), sealed.hash())).isNotEqualTo(sealed);
+        assertThat(new ChainSealer.Sealed(sealed.seq(), sealed.canonicalPublicContent(), new byte[] {1}, sealed.hash())).isNotEqualTo(sealed);
+        assertThat(new ChainSealer.Sealed(sealed.seq(), sealed.canonicalPublicContent(), sealed.previousHash(), new byte[] {1})).isNotEqualTo(sealed);
+
+        var missingMotorcycle = ChainVerifier.verify(null, b.links(), b.head(), id -> Optional.of(KEY.getPublic().getEncoded()));
+        assertThat(missingMotorcycle.status()).isEqualTo(VerificationResult.Status.INVALID);
+    }
+
+    @Test
     void sealIncrementsSeqAndLinksToThePreviousHash() {
         var first = ChainSealer.seal(0, ChainSealer.GENESIS_HASH, seq -> java.util.Map.of("seq", seq));
         var second = ChainSealer.seal(first.seq(), first.hash(), seq -> java.util.Map.of("seq", seq));
