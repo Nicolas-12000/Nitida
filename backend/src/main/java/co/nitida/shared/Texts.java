@@ -10,7 +10,9 @@ public final class Texts {
         return v;
     }
 
-    private static final java.util.regex.Pattern EMAIL = java.util.regex.Pattern.compile("[\\w.+-]++@[\\w-]++\\.[\\w-]++(?:\\.[\\w-]++)*+");
+    // PII sniffing, not RFC 5322: one pass, no nested quantifiers (Sonar S8786).
+    private static final java.util.regex.Pattern EMAIL =
+            java.util.regex.Pattern.compile("[\\w.%+-]+@[\\w.-]+\\.[A-Za-z]{2,}");
     /** 8 to 30 digits with a single space, dot or dash between them: phones (310 123 4567) and national ids (1.085.123.456). */
     private static final java.util.regex.Pattern LONG_NUMBER = java.util.regex.Pattern.compile("\\d(?:[\\s.\\-]?\\d){7,29}");
 
