@@ -55,6 +55,9 @@ HELP.md
 compose.override.yaml
 docker-compose.override.yml
 
+### jqwik (local DB file) ###
+.jqwik-database
+
 ### Quality / reports (cuando agregues pitest, SBOM, etc.) ###
 .pitest/
 **/mutationReport/
