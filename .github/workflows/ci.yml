@@ -306,7 +306,7 @@ jobs:
           category: /language:java-kotlin
 
   codeql-frontend:
-    name: CodeQL (JavaScript)
+    name: CodeQL (TypeScript)
     needs: changes
     if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest

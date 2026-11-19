@@ -11,7 +11,9 @@ RUN ./gradlew bootJar -x test --no-daemon \
  && mkdir -p /data/files
 
 # Runtime stage: distroless (no shell, no package manager), non-root.
-FROM gcr.io/distroless/java21-debian12:nonroot@sha256:7e37784d94dccbf5ccb195c73b295f5ad00cd266512dfbac12eb9c3c28f8077d
+# Debian 13, not 12: the published debian12 image still ships brotli 1.0.9-2 (CVE-2026-111497).
+# This digest has libbrotli1 1.1.0-2+deb13u1.
+FROM gcr.io/distroless/java21-debian13:nonroot@sha256:cddca4cc6b1dfc76142e5c1a1d00ce7a79bcc1292ad65d34227794f9d371a496
 WORKDIR /app
 COPY --from=build /workspace/build/libs/app.jar /app/app.jar
 COPY --from=build --chown=65532:65532 /data /data

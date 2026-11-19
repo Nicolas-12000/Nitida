@@ -29,16 +29,6 @@
       "name": "nitida.login.ip-limit",
       "type": "java.lang.Integer",
       "description": "Max failed logins per IP within the rate-limit window."
-    },
-    {
-      "name": "nitida.register.ip-limit",
-      "type": "java.lang.Integer",
-      "description": "Max account registrations per client IP per hour (each one computes an Argon2id hash)."
-    },
-    {
-      "name": "nitida.events.resubmit-interval",
-      "type": "java.time.Duration",
-      "description": "How often incomplete event publications are resubmitted (ISO-8601, default PT5M)."
     }
   ]
 }

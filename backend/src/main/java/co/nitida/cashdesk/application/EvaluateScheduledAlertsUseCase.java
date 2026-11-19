@@ -7,6 +7,7 @@ import co.nitida.orders.OrdersApi;
 import co.nitida.workshops.WorkshopsApi;
 import java.time.Clock;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.stream.Stream;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -39,25 +40,27 @@ public class EvaluateScheduledAlertsUseCase {
         var settings = workshops.findAll(Stream.concat(overdueIntakes.stream().map(IntakeApi.IntakeInfo::workshopId),
                 stalled.stream().map(OrdersApi.StalledOrder::workshopId)).distinct().toList());
 
+        var found = new ArrayList<LeakAlerts.Candidate>();
         for (var i : overdueIntakes) {
             var ws = settings.get(i.workshopId());
             if (ws != null && AlertRules.intakeOverdue(i.createdAt(), now, ws.intakeAlertHours())) {
-                alerts.raise(i.workshopId(), AlertType.F1_INTAKE_WITHOUT_ORDER, i.id(), i.id().toString(),
-                        "Recepción abierta hace más de " + ws.intakeAlertHours() + " h sin orden de trabajo");
+                found.add(new LeakAlerts.Candidate(i.workshopId(), AlertType.F1_INTAKE_WITHOUT_ORDER, i.id(), i.id().toString(),
+                        "Recepción abierta hace más de " + ws.intakeAlertHours() + " h sin orden de trabajo"));
             }
         }
         for (var o : stalled) {
             var ws = settings.get(o.workshopId());
             if (ws != null && AlertRules.orderStalled(o.lastChangedAt(), now, ws.stalledDays())) {
                 // keyed by the last change: an order that moves and stalls again raises a new alert
-                alerts.raise(o.workshopId(), AlertType.F5_STALLED_ORDER, o.orderId(), o.orderId() + ":" + o.lastChangedAt().toEpochMilli(),
-                        "Orden en estado " + o.status() + " sin cambios hace más de " + ws.stalledDays() + " días");
+                found.add(new LeakAlerts.Candidate(o.workshopId(), AlertType.F5_STALLED_ORDER, o.orderId(), o.orderId() + ":" + o.lastChangedAt().toEpochMilli(),
+                        "Orden en estado " + o.status() + " sin cambios hace más de " + ws.stalledDays() + " días"));
             }
         }
         for (var z : orders.inconsistentZeroTotalOrders()) {
-            alerts.raise(z.workshopId(), AlertType.F4_ZERO_TOTAL_WITHOUT_WARRANTY, z.orderId(), z.orderId().toString(),
-                    "Orden entregada con total 0 sin ser garantía");
+            found.add(new LeakAlerts.Candidate(z.workshopId(), AlertType.F4_ZERO_TOTAL_WITHOUT_WARRANTY, z.orderId(), z.orderId().toString(),
+                    "Orden entregada con total 0 sin ser garantía"));
         }
+        alerts.raiseAll(found);
     }
 
 }
