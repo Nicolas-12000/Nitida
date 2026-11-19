@@ -16,9 +16,6 @@ jobs:
     parameters:
       maxAlertsPerRule: 10
     rules:
-      # Health is cacheable on purpose.
-      - id: 10049
-        threshold: off
       # CI talks plain HTTP. Production sets NITIDA_COOKIE_SECURE and sits behind TLS.
       - id: 10011
         threshold: off
