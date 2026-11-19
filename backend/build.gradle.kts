@@ -29,7 +29,7 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-webmvc")
 	implementation("org.springframework.boot:spring-boot-starter-session-jdbc")
 	implementation("org.flywaydb:flyway-database-postgresql")
-	implementation("org.bouncycastle:bcprov-jdk18on:1.80")
+	implementation("org.bouncycastle:bcprov-jdk18on:1.87")
 	implementation("com.twelvemonkeys.imageio:imageio-webp:3.12.0")
 	implementation("org.springframework.modulith:spring-modulith-observability-api")
 	implementation("org.springframework.modulith:spring-modulith-starter-core")
