@@ -72,7 +72,7 @@ class CryptoAndLimiterTest {
 
     @Test
     void keyCipherRoundTripsAndBindsToWorkshop() {
-        var cipher = new co.nitida.workshops.infrastructure.KeyCipher("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", 1);
+        var cipher = new co.nitida.shared.crypto.KeyCipher("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", 1);
         var ws = UUID.randomUUID();
         var sealed = cipher.seal("secret".getBytes(), ws);
         assertThat(cipher.open(sealed.ciphertext(), sealed.nonce(), ws)).isEqualTo("secret".getBytes());

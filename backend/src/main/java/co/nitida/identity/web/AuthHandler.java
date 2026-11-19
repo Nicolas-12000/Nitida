@@ -2,12 +2,15 @@ package co.nitida.identity.web;
 
 import co.nitida.identity.AuthenticatedUser;
 import co.nitida.identity.IdentityApi;
+import co.nitida.identity.application.ConfirmTotpUseCase;
 import co.nitida.identity.application.LoginUseCase;
 import co.nitida.identity.application.RegisterUserUseCase;
+import co.nitida.identity.application.SetupTotpUseCase;
 import co.nitida.shared.ApiException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -23,19 +26,29 @@ import org.springframework.web.servlet.function.ServerResponse;
 class AuthHandler {
     record RegisterRequest(String email, String password, String displayName) {}
 
-    record LoginRequest(String email, String password) {}
+    record LoginRequest(String email, String password, String totp) {}
 
-    record MeResponse(UUID id, String email, String displayName, boolean platformAdmin,
-                      List<IdentityApi.WorkshopRole> memberships) {}
+    record CodeRequest(String code) {}
+
+    record MeResponse(UUID id, String email, String displayName, boolean platformAdmin, boolean totpEnabled,
+                      boolean totpSetupRequired, List<IdentityApi.WorkshopRole> memberships) {}
 
     private final RegisterUserUseCase register;
     private final LoginUseCase login;
     private final IdentityApi identity;
 
-    AuthHandler(RegisterUserUseCase register, LoginUseCase login, IdentityApi identity) {
+    private final SetupTotpUseCase setupTotp;
+    private final ConfirmTotpUseCase confirmTotp;
+    private final boolean totpRequired;
+
+    AuthHandler(RegisterUserUseCase register, LoginUseCase login, IdentityApi identity, SetupTotpUseCase setupTotp,
+                ConfirmTotpUseCase confirmTotp, @Value("${nitida.admin.totp-required:true}") boolean totpRequired) {
         this.register = register;
         this.login = login;
         this.identity = identity;
+        this.setupTotp = setupTotp;
+        this.confirmTotp = confirmTotp;
+        this.totpRequired = totpRequired;
     }
 
     ServerResponse register(ServerRequest req) throws Exception {
@@ -47,17 +60,31 @@ class AuthHandler {
     ServerResponse login(ServerRequest req) throws Exception {
         var body = req.body(LoginRequest.class);
         HttpServletRequest http = req.servletRequest();
-        var user = login.execute(new LoginUseCase.Command(body.email(), body.password(), http.getRemoteAddr()));
-        startSession(http, user);
-        return ServerResponse.ok().body(me(user));
+        var result = login.execute(new LoginUseCase.Command(body.email(), body.password(), body.totp(), http.getRemoteAddr()));
+        startSession(http, result.user(), result.adminAllowed(), true);
+        return ServerResponse.ok().body(me(result.user()));
     }
 
     ServerResponse me(ServerRequest req) {
         return ServerResponse.ok().body(me(AuthenticatedUser.current()));
     }
 
+    ServerResponse setupTotp(ServerRequest req) {
+        var result = setupTotp.execute(AuthenticatedUser.current().userId());
+        return ServerResponse.ok().header("Cache-Control", "no-store").body(result);
+    }
+
+    /** Turning TOTP on is what lifts the "enroll first" restriction of a platform admin's current session. */
+    ServerResponse confirmTotp(ServerRequest req) throws Exception {
+        var user = AuthenticatedUser.current();
+        boolean admin = confirmTotp.execute(user.userId(), req.body(CodeRequest.class).code());
+        if (admin) startSession(req.servletRequest(), identity.findUser(user.userId()).orElseThrow(ApiException::forbidden), true, false);
+        return ServerResponse.noContent().build();
+    }
+
     private MeResponse me(IdentityApi.UserSummary u) {
-        return new MeResponse(u.id(), u.email(), u.displayName(), u.platformAdmin(), identity.membershipsOf(u.id()));
+        boolean setupRequired = u.platformAdmin() && !u.totpEnabled() && totpRequired;
+        return new MeResponse(u.id(), u.email(), u.displayName(), u.platformAdmin(), u.totpEnabled(), setupRequired, identity.membershipsOf(u.id()));
     }
 
     private MeResponse me(AuthenticatedUser u) {
@@ -65,14 +92,17 @@ class AuthHandler {
         return me(summary);
     }
 
-    /** New session id on login prevents session fixation (section 10). */
-    private static void startSession(HttpServletRequest http, IdentityApi.UserSummary user) {
+    /**
+     * New session id on login prevents session fixation (section 10). The admin authority is granted only when TOTP is
+     * in place: until then a platform admin is an ordinary user who can enroll.
+     */
+    private static void startSession(HttpServletRequest http, IdentityApi.UserSummary user, boolean adminAllowed, boolean newSession) {
         var principal = new AuthenticatedUser(user.id(), user.email(), user.platformAdmin());
-        var authorities = user.platformAdmin()
+        var authorities = user.platformAdmin() && adminAllowed
                 ? AuthorityUtils.createAuthorityList("ROLE_USER", "ROLE_PLATFORM_ADMIN")
                 : AuthorityUtils.createAuthorityList("ROLE_USER");
         SecurityContext ctx = new SecurityContextImpl(UsernamePasswordAuthenticationToken.authenticated(principal, null, authorities));
-        if (http.getSession(false) != null) http.changeSessionId();
+        if (newSession && http.getSession(false) != null) http.changeSessionId();
         http.getSession(true).setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, ctx);
     }
 }

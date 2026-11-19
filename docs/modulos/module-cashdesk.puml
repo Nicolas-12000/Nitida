@@ -27,20 +27,20 @@ System_Boundary("NitidaApplication_boundary", "NitidaApplication", $tags="") {
 
 }
 
-Rel(NitidaApplication.NitidaApplication.Intake, NitidaApplication.NitidaApplication.Shared, "uses", $techn="", $tags="", $link="")
-Rel(NitidaApplication.NitidaApplication.Intake, NitidaApplication.NitidaApplication.Workshops, "uses", $techn="", $tags="", $link="")
-Rel(NitidaApplication.NitidaApplication.Workshops, NitidaApplication.NitidaApplication.Shared, "uses", $techn="", $tags="", $link="")
 Rel(NitidaApplication.NitidaApplication.Catalog, NitidaApplication.NitidaApplication.Shared, "uses", $techn="", $tags="", $link="")
-Rel(NitidaApplication.NitidaApplication.Orders, NitidaApplication.NitidaApplication.Shared, "depends on", $techn="", $tags="", $link="")
-Rel(NitidaApplication.NitidaApplication.Orders, NitidaApplication.NitidaApplication.Catalog, "uses", $techn="", $tags="", $link="")
-Rel(NitidaApplication.NitidaApplication.Orders, NitidaApplication.NitidaApplication.Workshops, "uses", $techn="", $tags="", $link="")
-Rel(NitidaApplication.NitidaApplication.Orders, NitidaApplication.NitidaApplication.Intake, "uses", $techn="", $tags="", $link="")
+Rel(NitidaApplication.NitidaApplication.Workshops, NitidaApplication.NitidaApplication.Shared, "uses", $techn="", $tags="", $link="")
 Rel(NitidaApplication.NitidaApplication.Cashdesk, NitidaApplication.NitidaApplication.Catalog, "listens to", $techn="", $tags="", $link="")
 Rel(NitidaApplication.NitidaApplication.Cashdesk, NitidaApplication.NitidaApplication.Orders, "listens to", $techn="", $tags="", $link="")
 Rel(NitidaApplication.NitidaApplication.Cashdesk, NitidaApplication.NitidaApplication.Orders, "uses", $techn="", $tags="", $link="")
 Rel(NitidaApplication.NitidaApplication.Cashdesk, NitidaApplication.NitidaApplication.Workshops, "uses", $techn="", $tags="", $link="")
 Rel(NitidaApplication.NitidaApplication.Cashdesk, NitidaApplication.NitidaApplication.Shared, "uses", $techn="", $tags="", $link="")
 Rel(NitidaApplication.NitidaApplication.Cashdesk, NitidaApplication.NitidaApplication.Intake, "uses", $techn="", $tags="", $link="")
+Rel(NitidaApplication.NitidaApplication.Orders, NitidaApplication.NitidaApplication.Shared, "depends on", $techn="", $tags="", $link="")
+Rel(NitidaApplication.NitidaApplication.Orders, NitidaApplication.NitidaApplication.Catalog, "uses", $techn="", $tags="", $link="")
+Rel(NitidaApplication.NitidaApplication.Orders, NitidaApplication.NitidaApplication.Workshops, "uses", $techn="", $tags="", $link="")
+Rel(NitidaApplication.NitidaApplication.Orders, NitidaApplication.NitidaApplication.Intake, "uses", $techn="", $tags="", $link="")
+Rel(NitidaApplication.NitidaApplication.Intake, NitidaApplication.NitidaApplication.Shared, "uses", $techn="", $tags="", $link="")
+Rel(NitidaApplication.NitidaApplication.Intake, NitidaApplication.NitidaApplication.Workshops, "uses", $techn="", $tags="", $link="")
 
 SHOW_LEGEND(true)
 hide stereotypes

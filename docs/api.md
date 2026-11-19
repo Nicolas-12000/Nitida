@@ -31,8 +31,10 @@ Columnas: **Ctx** `T` = lleva `X-Workshop-Id` · **Roles** quién puede.
 | Ruta | Ctx | Roles | Cuerpo | Respuesta |
 |---|---|---|---|---|
 | `POST /api/v1/auth/register` | | P | `{email, password (12–128, no común), displayName}` | `201` `{userId}`; `409 EMAIL_TAKEN`, `422 WEAK_PASSWORD / INVALID_EMAIL` |
-| `POST /api/v1/auth/login` | | P | `{email, password}` | `200` igual que `/auth/me` + cookie `SESSION`; `401 INVALID_CREDENTIALS` (misma respuesta para usuario inexistente), `429 RATE_LIMITED` tras 5 fallos |
-| `GET /api/v1/auth/me` | | U | — | `{id, email, displayName, platformAdmin, memberships:[{workshopId, role}]}` |
+| `POST /api/v1/auth/login` | | P | `{email, password, totp?}` | `200` igual que `/auth/me` + cookie `SESSION`; `401 TOTP_REQUIRED` si la cuenta tiene TOTP y falta `totp` (solo con la contraseña correcta); `401 INVALID_CREDENTIALS` (misma respuesta para usuario inexistente), `429 RATE_LIMITED` tras 5 fallos |
+| `GET /api/v1/auth/me` | | U | — | `{id, email, displayName, platformAdmin, totpEnabled, totpSetupRequired, memberships:[{workshopId, role}]}`. `totpSetupRequired`: administrador que aún no activó TOTP (inicia sesión, pero sin privilegios de administrador) |
+| `POST /api/v1/auth/totp/setup` | | U | — | `{secret, otpauthUri}`: secreto Base32 y enlace para el QR, **una sola vez**; `409 TOTP_ALREADY_ENABLED` |
+| `POST /api/v1/auth/totp/confirm` | | U | `{code}` (6 dígitos) | `204`; activa TOTP y, si es administrador, le da sus privilegios en esta sesión; `422 INVALID_TOTP`, `409 TOTP_NOT_STARTED`, `429` tras 5 intentos |
 | `POST /api/v1/workshops` | | U | `{name, documentNumber, address, municipality, phone, facadePhotoId?}` | `201` `{workshopId}`; quien lo crea queda como dueño |
 | `GET /api/v1/workshops/mine` | | U | — | talleres de la persona |
 | `GET /api/v1/workshops/{id}` | T | O M R | — | datos y ajustes del taller (`intakeAlertHours`, `cashTolerance`, `stalledDays`, `version`, estado) |
@@ -135,6 +137,7 @@ Columnas: **Ctx** `T` = lleva `X-Workshop-Id` · **Roles** quién puede.
 | `WORKSHOP_REQUIRED` / `INVALID_WORKSHOP_ID` | 400 | Falta o es inválido `X-Workshop-Id` |
 | `WORKSHOP_SUSPENDED` | 423 | El taller suspendido no crea registros nuevos |
 | `WEAK_PASSWORD` · `INVALID_EMAIL` · `EMAIL_TAKEN` · `INVALID_CREDENTIALS` | 422 / 409 / 401 | Registro e inicio de sesión |
+| `TOTP_REQUIRED` · `INVALID_TOTP` · `TOTP_ALREADY_ENABLED` · `TOTP_NOT_STARTED` | 401 / 422 / 409 | Verificación en dos pasos: falta el código al iniciar sesión, código inválido al activar, ya activa, o falta pedir el QR |
 | `INVALID_PLATE` · `PLATE_IN_USE` · `INVALID_VIN` · `PLATE_VIN_MISMATCH` · `IDENTIFIER_REQUIRED` · `INVALID_MODEL_YEAR` · `INVALID_DISPLACEMENT` | 422 | Identidad de la moto |
 | `INVALID_MILEAGE` · `MILEAGE_REGRESSION` | 422 | Kilometraje fuera de rango o menor al anterior |
 | `INTAKE_ALREADY_OPEN` · `INTAKE_NOT_OPEN` · `PHOTO_REQUIRED` · `INVALID_PHOTO` | 409 / 422 | Recepción |
@@ -152,7 +155,7 @@ Columnas: **Ctx** `T` = lleva `X-Workshop-Id` · **Roles** quién puede.
 
 ## Flujo recomendado para el frontend
 
-1. `GET /auth/me` al cargar: si `401` va a `/login`; con `memberships` elige taller y fija `X-Workshop-Id`.
+1. `GET /auth/me` al cargar: si `401` va a `/login`; con `memberships` elige taller y fija `X-Workshop-Id`. Si `totpSetupRequired` es `true`, llevar al administrador a activar TOTP (`/auth/totp/setup` → mostrar el QR con `otpauthUri` → `/auth/totp/confirm`) antes de cualquier pantalla de `/admin`. En el login, un `401` con `code: TOTP_REQUIRED` es la señal para pedir el código de 6 dígitos y reenviar el mismo formulario con `totp`.
 2. Recepción → orden → repuestos (escaneo: el valor leído se valida en el cliente y se vuelve a validar aquí) → completar → pagos → entrega.
 3. En la entrega, mostrar y guardar `claimCode` en el recibo: no se puede volver a pedir.
 4. Estados de verificación del historial: `VALID` (cadena íntegra), `INVALID` (alterada, con el `seq` del fallo), `UNVERIFIABLE` (no se pudo comprobar). Nunca mostrar `UNVERIFIABLE` como válido.

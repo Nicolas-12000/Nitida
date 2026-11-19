@@ -84,7 +84,7 @@ Marcado = hecho y con prueba. Orden sugerido para la entrega: RLS → contrato �
 ### Autenticación y sesión (§10)
 - [x] Argon2id, sesión JDBC 8 h, CSRF por cookie + encabezado, rotación de sesión, bloqueo progresivo, logout
 - [x] Cookie `SESSION` con `HttpOnly` + `SameSite=Lax` (estaba sin ellas; corregido y probado en `OwaspSecurityTest`)
-- [ ] TOTP obligatorio para admin / opcional para dueño, o ADR de aplazamiento
+- [x] TOTP (RFC 6238): obligatorio para el administrador (sin él no tiene privilegios de `/admin`), opcional para el resto; secreto cifrado con la KEK y código de un solo uso. ADR 0011. Falta: códigos de recuperación
 - [ ] Envío de correo de invitaciones por Mailpit (hoy el token vuelve una vez al dueño: decisión 8)
 - [ ] Recuperación de contraseña (citada en §10, sin UC en §6)
 - [x] Límite por IP detrás de proxy: `server.forward-headers-strategy=native` (solo proxies internos); `ForwardedHeadersTest`

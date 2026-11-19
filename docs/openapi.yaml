@@ -132,6 +132,84 @@ paths:
           $ref: '#/components/responses/InternalError'
 
 
+  /api/v1/auth/totp/setup:
+    post:
+      tags: [auth]
+      operationId: setupTotp
+      summary: Paso 1 de activar TOTP (verificación en dos pasos)
+      description: |
+        Genera un secreto nuevo (guardado cifrado) y lo devuelve **una sola vez**, como texto y como enlace `otpauth://`
+        para el QR. No activa nada todavía: falta `confirm`. Cualquier persona con sesión puede activarlo (opcional);
+        para el administrador de plataforma es obligatorio (spec §10). `409 TOTP_ALREADY_ENABLED` si ya está activo.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        '200':
+          description: Secreto y enlace para el QR (encabezado `Cache-Control` en `no-store`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TotpSetupResponse' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+  /api/v1/auth/totp/confirm:
+    post:
+      tags: [auth]
+      operationId: confirmTotp
+      summary: Paso 2 de activar TOTP
+      description: |
+        El primer código válido demuestra que la app tiene el secreto y activa TOTP. A un administrador de plataforma
+        le levanta la restricción de esta misma sesión (no hace falta volver a iniciar sesión).
+        `422 INVALID_TOTP` si el código no vale; `409 TOTP_NOT_STARTED` si no pidió `setup`; `429` tras 5 intentos en 15 minutos.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TotpCodeRequest' }
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        '204':
+          description: TOTP activado
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '423':
+          $ref: '#/components/responses/WorkshopSuspended'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
   /api/v1/auth/me:
     get:
       tags: [auth]
@@ -2547,6 +2625,25 @@ components:
       properties:
         email: { type: string, format: email }
         password: { type: string }
+        totp:
+          type: string
+          pattern: '^[0-9]{6}$'
+          description: |
+            Código de 6 dígitos de la aplicación de autenticación. Obligatorio solo si la cuenta ya activó TOTP:
+            sin él, con la contraseña correcta, responde `401 TOTP_REQUIRED` (el frontend muestra entonces el campo).
+            Un código no se puede usar dos veces. Código incorrecto → `401 INVALID_CREDENTIALS`.
+
+    TotpSetupResponse:
+      type: object
+      properties:
+        secret: { type: string, description: 'Secreto en Base32, para escribirlo a mano en la app. Se muestra una sola vez.' }
+        otpauthUri: { type: string, description: 'Enlace `otpauth://` para generar el QR.' }
+
+    TotpCodeRequest:
+      type: object
+      required: [code]
+      properties:
+        code: { type: string, pattern: '^[0-9]{6}$' }
 
     WorkshopRole:
       type: object
@@ -2563,6 +2660,12 @@ components:
         email: { type: string }
         displayName: { type: string }
         platformAdmin: { type: boolean }
+        totpEnabled: { type: boolean }
+        totpSetupRequired:
+          type: boolean
+          description: |
+            `true` para un administrador de plataforma que aún no activó TOTP: puede iniciar sesión pero **no tiene
+            privilegios de administrador** (`/admin/**` → `403`) hasta completar `/auth/totp/setup` y `/auth/totp/confirm`.
         memberships:
           type: array
           items: { $ref: '#/components/schemas/WorkshopRole' }

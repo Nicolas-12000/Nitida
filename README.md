@@ -35,7 +35,7 @@ Con `NITIDA_DEV_SEED_PASSWORD` definida y el perfil `dev` (el de `docker compose
 | `taller.verificado@nitida.test` | Dueño de «Taller El Rayo» (verificado, con las 5 motos `DEV01A`…`DEV05A`) |
 | `taller.pendiente@nitida.test` | Dueña de «Taller La Chispa» (pendiente de verificación) |
 
-No hay clave por defecto: sin la variable no se crea nada. Si ya existe `admin@nitida.test`, no vuelve a sembrar.
+El administrador necesita TOTP en producción (spec §10); en el perfil `dev` esa exigencia está apagada (`nitida.admin.totp-required=false`) para explorar sin aplicación de autenticación. No hay clave por defecto: sin la variable no se crea nada. Si ya existe `admin@nitida.test`, no vuelve a sembrar.
 
 ## Comandos
 
@@ -83,4 +83,4 @@ Cada entrada del historial se encadena con la anterior (SHA-256 sobre JSON canó
 
 ## Límites conocidos
 
-Ver el checklist de [`backend/planmvp.md`](backend/planmvp.md). Los más relevantes: sin RLS en PostgreSQL (el aislamiento entre talleres es de aplicación), sin TOTP, listados sin paginación por cursor y límite de intentos en memoria (una instancia).
+Ver el checklist de [`backend/planmvp.md`](backend/planmvp.md). Los más relevantes: sin RLS en PostgreSQL (el aislamiento entre talleres es de aplicación), sin códigos de recuperación de TOTP, y límite de intentos en memoria (una instancia).

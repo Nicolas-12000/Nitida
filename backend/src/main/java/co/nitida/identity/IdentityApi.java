@@ -8,7 +8,7 @@ import java.util.UUID;
 
 /** Public API of the identity module: what other modules may ask about users and memberships. */
 public interface IdentityApi {
-    record UserSummary(UUID id, String email, String displayName, boolean platformAdmin) {}
+    record UserSummary(UUID id, String email, String displayName, boolean platformAdmin, boolean totpEnabled) {}
 
     record WorkshopRole(UUID workshopId, Role role) {}
 

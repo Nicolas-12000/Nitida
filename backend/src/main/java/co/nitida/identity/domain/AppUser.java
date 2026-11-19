@@ -1,5 +1,6 @@
 package co.nitida.identity.domain;
 
+import co.nitida.shared.ApiException;
 import co.nitida.shared.persistence.AssignedIdEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -28,6 +29,14 @@ public class AppUser extends AssignedIdEntity {
     private Instant lockedUntil;
     @Column(name = "failed_attempts", nullable = false)
     private int failedAttempts;
+    @Column(name = "totp_secret")
+    private byte[] totpSecret;
+    @Column(name = "totp_nonce")
+    private byte[] totpNonce;
+    @Column(name = "totp_enabled", nullable = false)
+    private boolean totpEnabled;
+    @Column(name = "totp_last_step", nullable = false)
+    private long totpLastStep;
 
     protected AppUser() {}
 
@@ -58,10 +67,31 @@ public class AppUser extends AssignedIdEntity {
         lockedUntil = null;
     }
 
+    /** Stores a freshly generated (sealed) secret; it only counts once {@link #enableTotp} proves the app has it. */
+    public void startTotpEnrollment(byte[] sealedSecret, byte[] nonce) {
+        if (totpEnabled) throw ApiException.conflict("TOTP_ALREADY_ENABLED", "La verificación en dos pasos ya está activa");
+        totpSecret = sealedSecret;
+        totpNonce = nonce;
+        totpLastStep = 0;
+    }
+
+    public void enableTotp(long confirmedStep) {
+        if (totpEnabled) throw ApiException.conflict("TOTP_ALREADY_ENABLED", "La verificación en dos pasos ya está activa");
+        if (totpSecret == null) throw ApiException.conflict("TOTP_NOT_STARTED", "Primero solicite el código QR de configuración");
+        totpEnabled = true;
+        totpLastStep = confirmedStep;
+    }
+
+    public void acceptTotpStep(long step) { totpLastStep = step; }
+
     public String getEmail() { return email; }
     public String getPasswordHash() { return passwordHash; }
     public String getDisplayName() { return displayName; }
     public boolean isPlatformAdmin() { return platformAdmin; }
+    public boolean isTotpEnabled() { return totpEnabled; }
+    public byte[] getTotpSecret() { return totpSecret; }
+    public byte[] getTotpNonce() { return totpNonce; }
+    public long getTotpLastStep() { return totpLastStep; }
     public int getFailedAttempts() { return failedAttempts; }
     public Instant getLockedUntil() { return lockedUntil; }
 }

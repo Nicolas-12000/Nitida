@@ -71,12 +71,23 @@ public abstract class IntegrationTest {
         return new Session(cookie, UUID.fromString(id), email);
     }
 
+    private static final Map<String, String> TOTP_SECRETS = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** A platform admin with TOTP enrolled, as the policy requires; the secret is kept for tests that log in again. */
     protected Session registerAdmin() throws Exception {
         String email = uniqueEmail();
         post("/api/v1/auth/register", null, null, Map.of("email", email, "password", PASSWORD, "displayName", "Admin")).andReturn();
         jdbc.sql("UPDATE identity.app_user SET platform_admin = true WHERE email = ?").param(email).update();
-        return login(email, PASSWORD); // authorities are fixed at login time
+        var session = login(email, PASSWORD); // until TOTP is enrolled the session has no admin privileges
+        String secret = json(post("/api/v1/auth/totp/setup", session, null, null)).get("secret").asString();
+        var code = co.nitida.identity.domain.Totp.code(co.nitida.identity.domain.Base32.decode(secret),
+                co.nitida.identity.domain.Totp.stepAt(java.time.Instant.now().getEpochSecond()));
+        post("/api/v1/auth/totp/confirm", session, null, Map.of("code", code)).andReturn();
+        TOTP_SECRETS.put(email, secret);
+        return session;
     }
+
+    protected String totpSecretOf(Session admin) { return TOTP_SECRETS.get(admin.email()); }
 
     protected UUID createWorkshop(Session owner) throws Exception {
         var r = post("/api/v1/workshops", owner, null, Map.of("name", "Taller El Rayo", "documentNumber", "900123456-7",

@@ -12,6 +12,6 @@ Cada archivo es corto: contexto, decisión y consecuencias. Los números siguen 
 - [8. Las invitaciones devuelven el token al dueño](0008-invitacion-sin-correo.md)
 - [9. Contrato HTTP en `docs/api.md`; Swagger solo en local](0009-contrato-http-a-mano.md)
 - [10. `OWNERSHIP_TRANSFER` lo firma la plataforma](0010-traspaso-firmado-por-la-plataforma.md)
-- [11. TOTP aplazado a la fase 2](0011-totp-aplazado.md)
+- [11. TOTP obligatorio para el administrador de plataforma](0011-totp-para-el-administrador.md)
 - [12. Los pagos de una orden se serializan con bloqueo de fila](0012-pagos-serializados-por-orden.md)
 - [13. Las publicaciones incompletas se reintentan](0013-reintento-de-eventos.md)

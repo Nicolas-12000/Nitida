@@ -2,9 +2,9 @@ package co.nitida.workshops.application;
 
 import co.nitida.shared.UuidV7;
 import co.nitida.shared.crypto.Ed25519;
+import co.nitida.shared.crypto.KeyCipher;
 import co.nitida.workshops.domain.SigningKey;
 import co.nitida.workshops.domain.SigningKeyRepository;
-import co.nitida.workshops.infrastructure.KeyCipher;
 import java.time.Instant;
 import java.util.UUID;
 import org.springframework.stereotype.Component;

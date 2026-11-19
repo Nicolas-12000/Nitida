@@ -2,12 +2,12 @@ package co.nitida.workshops.application;
 
 import co.nitida.shared.ApiException;
 import co.nitida.shared.crypto.Ed25519;
+import co.nitida.shared.crypto.KeyCipher;
 import co.nitida.workshops.WorkshopsApi;
 import co.nitida.workshops.domain.SigningKey;
 import co.nitida.workshops.domain.SigningKeyRepository;
 import co.nitida.workshops.domain.Workshop;
 import co.nitida.workshops.domain.WorkshopRepository;
-import co.nitida.workshops.infrastructure.KeyCipher;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

@@ -16,6 +16,8 @@ class AuthRoutes {
                         .POST("/auth/register", auth::register)
                         .POST("/auth/login", auth::login)
                         .GET("/auth/me", auth::me)
+                        .POST("/auth/totp/setup", auth::setupTotp)
+                        .POST("/auth/totp/confirm", auth::confirmTotp)
                         .POST("/invitations/{token}/accept", members::accept)
                         .POST("/workshops/{id}/invitations", members::invite)
                         .GET("/workshops/{id}/members", members::list)

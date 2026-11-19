@@ -74,6 +74,6 @@ class IdentityApiImpl implements IdentityApi {
     }
 
     static UserSummary summary(AppUser u) {
-        return new UserSummary(u.getId(), u.getEmail(), u.getDisplayName(), u.isPlatformAdmin());
+        return new UserSummary(u.getId(), u.getEmail(), u.getDisplayName(), u.isPlatformAdmin(), u.isTotpEnabled());
     }
 }

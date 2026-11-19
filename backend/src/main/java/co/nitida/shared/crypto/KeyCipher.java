@@ -1,4 +1,4 @@
-package co.nitida.workshops.infrastructure;
+package co.nitida.shared.crypto;
 
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
@@ -9,7 +9,7 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-/** AES-256-GCM encryption of private signing keys under a KEK read from the environment (section 8.3). */
+/** AES-256-GCM encryption of secrets at rest (signing keys, TOTP secrets) under a KEK read from the environment (section 8.3). */
 public class KeyCipher {
     public record Sealed(byte[] ciphertext, byte[] nonce) {}
 
@@ -26,25 +26,25 @@ public class KeyCipher {
 
     public int version() { return version; }
 
-    /** The workshop id is authenticated data: a key blob cannot be moved to another workshop. */
-    public Sealed seal(byte[] plain, UUID workshopId) {
+    /** The owner id (workshop or user) is authenticated data: a blob cannot be moved to another owner. */
+    public Sealed seal(byte[] plain, UUID ownerId) {
         try {
             byte[] nonce = new byte[12];
             RANDOM.nextBytes(nonce);
             var c = Cipher.getInstance("AES/GCM/NoPadding");
             c.init(Cipher.ENCRYPT_MODE, kek, new GCMParameterSpec(128, nonce));
-            c.updateAAD(aad(workshopId));
+            c.updateAAD(aad(ownerId));
             return new Sealed(c.doFinal(plain), nonce);
         } catch (GeneralSecurityException e) {
             throw new IllegalStateException("could not seal key", e);
         }
     }
 
-    public byte[] open(byte[] ciphertext, byte[] nonce, UUID workshopId) {
+    public byte[] open(byte[] ciphertext, byte[] nonce, UUID ownerId) {
         try {
             var c = Cipher.getInstance("AES/GCM/NoPadding");
             c.init(Cipher.DECRYPT_MODE, kek, new GCMParameterSpec(128, nonce));
-            c.updateAAD(aad(workshopId));
+            c.updateAAD(aad(ownerId));
             return c.doFinal(ciphertext);
         } catch (GeneralSecurityException e) {
             throw new IllegalStateException("could not open key", e);

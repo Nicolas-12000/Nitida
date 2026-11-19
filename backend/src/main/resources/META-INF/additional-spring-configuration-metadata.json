@@ -36,6 +36,11 @@
       "description": "Max account registrations per client IP per hour (each one computes an Argon2id hash)."
     },
     {
+      "name": "nitida.admin.totp-required",
+      "type": "java.lang.Boolean",
+      "description": "Platform admins must enroll TOTP to get admin privileges (default true; only the dev profile turns it off)."
+    },
+    {
       "name": "nitida.dev.seed-password",
       "type": "java.lang.String",
       "description": "Dev profile only: password of the development accounts. Empty = the development data is not created."
@@ -44,6 +49,21 @@
       "name": "nitida.events.resubmit-interval",
       "type": "java.time.Duration",
       "description": "How often incomplete event publications are resubmitted (ISO-8601, default PT5M)."
+    },
+    {
+      "name": "springdoc.api-docs.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Serve the generated OpenAPI JSON (/v3/api-docs). Off outside the dev profile."
+    },
+    {
+      "name": "springdoc.swagger-ui.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Serve Swagger UI. Only the dev profile turns it on."
+    },
+    {
+      "name": "scalar.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Scalar API reference UI; kept off."
     }
   ]
 }
