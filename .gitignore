@@ -1,0 +1,6 @@
+# Raíz monorepo Nitida
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/
