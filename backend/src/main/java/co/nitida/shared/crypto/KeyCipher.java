@@ -11,7 +11,21 @@ import javax.crypto.spec.SecretKeySpec;
 
 /** AES-256-GCM encryption of secrets at rest (signing keys, TOTP secrets) under a KEK read from the environment (section 8.3). */
 public class KeyCipher {
-    public record Sealed(byte[] ciphertext, byte[] nonce) {}
+    public record Sealed(byte[] ciphertext, byte[] nonce) {
+        @Override public boolean equals(Object other) {
+            return other instanceof Sealed sealed
+                    && java.util.Arrays.equals(ciphertext, sealed.ciphertext)
+                    && java.util.Arrays.equals(nonce, sealed.nonce);
+        }
+
+        @Override public int hashCode() {
+            return java.util.Objects.hash(java.util.Arrays.hashCode(ciphertext), java.util.Arrays.hashCode(nonce));
+        }
+
+        @Override public String toString() {
+            return "Sealed[ciphertext=" + java.util.Arrays.toString(ciphertext) + ", nonce=" + java.util.Arrays.toString(nonce) + "]";
+        }
+    }
 
     private static final SecureRandom RANDOM = new SecureRandom();
     private final SecretKeySpec kek;

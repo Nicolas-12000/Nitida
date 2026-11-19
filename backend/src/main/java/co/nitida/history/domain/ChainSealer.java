@@ -9,7 +9,25 @@ import java.util.function.LongFunction;
 public final class ChainSealer {
     public static final byte[] GENESIS_HASH = new byte[32];
 
-    public record Sealed(long seq, String canonicalPublicContent, byte[] previousHash, byte[] hash) {}
+    public record Sealed(long seq, String canonicalPublicContent, byte[] previousHash, byte[] hash) {
+        @Override public boolean equals(Object other) {
+            return other instanceof Sealed sealed
+                    && seq == sealed.seq
+                    && java.util.Objects.equals(canonicalPublicContent, sealed.canonicalPublicContent)
+                    && java.util.Arrays.equals(previousHash, sealed.previousHash)
+                    && java.util.Arrays.equals(hash, sealed.hash);
+        }
+
+        @Override public int hashCode() {
+            return java.util.Objects.hash(seq, canonicalPublicContent, java.util.Arrays.hashCode(previousHash), java.util.Arrays.hashCode(hash));
+        }
+
+        @Override public String toString() {
+            return "Sealed[seq=" + seq + ", canonicalPublicContent=" + canonicalPublicContent
+                    + ", previousHash=" + java.util.Arrays.toString(previousHash)
+                    + ", hash=" + java.util.Arrays.toString(hash) + "]";
+        }
+    }
 
     private ChainSealer() {}
 

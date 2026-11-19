@@ -15,9 +15,41 @@ public interface WorkshopsApi {
         public boolean verified() { return status == WorkshopStatus.VERIFIED; }
     }
 
-    record SignedHash(UUID keyId, byte[] signature) {}
+    record SignedHash(UUID keyId, byte[] signature) {
+        @Override public boolean equals(Object other) {
+            return other instanceof SignedHash signed
+                    && java.util.Objects.equals(keyId, signed.keyId)
+                    && java.util.Arrays.equals(signature, signed.signature);
+        }
 
-    record PublicKeyInfo(UUID keyId, UUID workshopId, String algorithm, byte[] publicKey, boolean retired) {}
+        @Override public int hashCode() {
+            return java.util.Objects.hash(keyId, java.util.Arrays.hashCode(signature));
+        }
+
+        @Override public String toString() {
+            return "SignedHash[keyId=" + keyId + ", signature=" + java.util.Arrays.toString(signature) + "]";
+        }
+    }
+
+    record PublicKeyInfo(UUID keyId, UUID workshopId, String algorithm, byte[] publicKey, boolean retired) {
+        @Override public boolean equals(Object other) {
+            return other instanceof PublicKeyInfo info
+                    && retired == info.retired
+                    && java.util.Objects.equals(keyId, info.keyId)
+                    && java.util.Objects.equals(workshopId, info.workshopId)
+                    && java.util.Objects.equals(algorithm, info.algorithm)
+                    && java.util.Arrays.equals(publicKey, info.publicKey);
+        }
+
+        @Override public int hashCode() {
+            return java.util.Objects.hash(keyId, workshopId, algorithm, java.util.Arrays.hashCode(publicKey), retired);
+        }
+
+        @Override public String toString() {
+            return "PublicKeyInfo[keyId=" + keyId + ", workshopId=" + workshopId + ", algorithm=" + algorithm
+                    + ", publicKey=" + java.util.Arrays.toString(publicKey) + ", retired=" + retired + "]";
+        }
+    }
 
     Optional<WorkshopInfo> find(UUID workshopId);
 

@@ -15,10 +15,45 @@ import java.util.function.Function;
  */
 public final class ChainVerifier {
     /** What is needed from a stored entry; keeps the verifier free of JPA. */
-    public record Link(UUID motorcycleId, long seq, String publicContent, byte[] previousHash, byte[] hash, byte[] signature, UUID keyId) {}
+    public record Link(UUID motorcycleId, long seq, String publicContent, byte[] previousHash, byte[] hash, byte[] signature, UUID keyId) {
+        @Override public boolean equals(Object other) {
+            return other instanceof Link link
+                    && seq == link.seq
+                    && java.util.Objects.equals(motorcycleId, link.motorcycleId)
+                    && java.util.Objects.equals(publicContent, link.publicContent)
+                    && java.util.Objects.equals(keyId, link.keyId)
+                    && java.util.Arrays.equals(previousHash, link.previousHash)
+                    && java.util.Arrays.equals(hash, link.hash)
+                    && java.util.Arrays.equals(signature, link.signature);
+        }
+
+        @Override public int hashCode() {
+            return java.util.Objects.hash(motorcycleId, seq, publicContent, keyId,
+                    java.util.Arrays.hashCode(previousHash), java.util.Arrays.hashCode(hash), java.util.Arrays.hashCode(signature));
+        }
+
+        @Override public String toString() {
+            return "Link[motorcycleId=" + motorcycleId + ", seq=" + seq + ", publicContent=" + publicContent
+                    + ", previousHash=" + java.util.Arrays.toString(previousHash)
+                    + ", hash=" + java.util.Arrays.toString(hash)
+                    + ", signature=" + java.util.Arrays.toString(signature) + ", keyId=" + keyId + "]";
+        }
+    }
 
     /** The persisted head: where the chain is supposed to end. */
-    public record Head(long lastSeq, byte[] lastHash) {}
+    public record Head(long lastSeq, byte[] lastHash) {
+        @Override public boolean equals(Object other) {
+            return other instanceof Head head && lastSeq == head.lastSeq && java.util.Arrays.equals(lastHash, head.lastHash);
+        }
+
+        @Override public int hashCode() {
+            return java.util.Objects.hash(lastSeq, java.util.Arrays.hashCode(lastHash));
+        }
+
+        @Override public String toString() {
+            return "Head[lastSeq=" + lastSeq + ", lastHash=" + java.util.Arrays.toString(lastHash) + "]";
+        }
+    }
 
     private ChainVerifier() {}
 
@@ -54,7 +89,7 @@ public final class ChainVerifier {
     private static boolean contentMatchesRow(UUID motorcycleId, Link link) {
         Object parsed = Json.mapper().readValue(link.publicContent(), Object.class);
         if (!JsonCanonicalizer.canonicalize(parsed).equals(link.publicContent())) return false;
-        var map = (java.util.Map<?, ?>) parsed;
+        if (motorcycleId == null || !(parsed instanceof java.util.Map<?, ?> map)) return false;
         return motorcycleId.toString().equals(map.get("motorcycleId"))
                 && map.get("seq") instanceof Number n && n.longValue() == link.seq();
     }

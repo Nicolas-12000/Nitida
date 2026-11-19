@@ -10,9 +10,9 @@ public final class Texts {
         return v;
     }
 
-    private static final java.util.regex.Pattern EMAIL = java.util.regex.Pattern.compile("[\\w.+-]+@[\\w-]+\\.[\\w.-]+");
-    /** 8 or more digits, each optionally followed by one space, dot or dash: phones (310 123 4567) and national ids (1.085.123.456). */
-    private static final java.util.regex.Pattern LONG_NUMBER = java.util.regex.Pattern.compile("(?:\\d[\\s.\\-]?){8,}");
+    private static final java.util.regex.Pattern EMAIL = java.util.regex.Pattern.compile("[\\w.+-]++@[\\w-]++\\.[\\w-]++(?:\\.[\\w-]++)*+");
+    /** 8 to 30 digits with a single space, dot or dash between them: phones (310 123 4567) and national ids (1.085.123.456). */
+    private static final java.util.regex.Pattern LONG_NUMBER = java.util.regex.Pattern.compile("\\d(?:[\\s.\\-]?\\d){7,29}");
 
     /**
      * For free text that ends up in the public, signed, immutable history (RN-22): same length rules, and no emails,

@@ -30,7 +30,7 @@ public final class Totp {
 
     public static String code(byte[] secret, long step) {
         try {
-            var mac = Mac.getInstance("HmacSHA1");
+            var mac = Mac.getInstance("HmacSHA1"); // NOSONAR java:S4790 — RFC 6238 authenticators verify HMAC-SHA1
             mac.init(new SecretKeySpec(secret, "HmacSHA1"));
             byte[] hash = mac.doFinal(ByteBuffer.allocate(8).putLong(step).array());
             int offset = hash[hash.length - 1] & 0x0F; // dynamic truncation (RFC 4226 section 5.3)

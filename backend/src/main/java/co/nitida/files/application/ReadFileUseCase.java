@@ -12,7 +12,21 @@ import org.springframework.transaction.annotation.Transactional;
 public class ReadFileUseCase {
     public record Command(WorkshopContext ctx, UUID fileId) {}
 
-    public record Result(byte[] content, String mimeType) {}
+    public record Result(byte[] content, String mimeType) {
+        @Override public boolean equals(Object other) {
+            return other instanceof Result result
+                    && java.util.Arrays.equals(content, result.content)
+                    && java.util.Objects.equals(mimeType, result.mimeType);
+        }
+
+        @Override public int hashCode() {
+            return java.util.Objects.hash(java.util.Arrays.hashCode(content), mimeType);
+        }
+
+        @Override public String toString() {
+            return "Result[content.length=" + (content == null ? 0 : content.length) + ", mimeType=" + mimeType + "]";
+        }
+    }
 
     private final StoredFileRepository files;
     private final FileStorage storage;

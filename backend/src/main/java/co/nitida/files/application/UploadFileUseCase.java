@@ -14,7 +14,21 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class UploadFileUseCase {
-    public record Command(WorkshopContext ctx, byte[] content) {}
+    public record Command(WorkshopContext ctx, byte[] content) {
+        @Override public boolean equals(Object other) {
+            return other instanceof Command command
+                    && java.util.Objects.equals(ctx, command.ctx)
+                    && java.util.Arrays.equals(content, command.content);
+        }
+
+        @Override public int hashCode() {
+            return java.util.Objects.hash(ctx, java.util.Arrays.hashCode(content));
+        }
+
+        @Override public String toString() {
+            return "Command[ctx=" + ctx + ", content.length=" + (content == null ? 0 : content.length) + "]";
+        }
+    }
 
     public record Result(UUID fileId, String sha256, long sizeBytes) {}
 

@@ -69,7 +69,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          fetch-depth: ${{ env.SONAR_TOKEN != '' && 0 || 1 }} # only Sonar needs history (blame, new-code detection)
+          fetch-depth: ${{ env.SONAR_TOKEN != '' && '0' || '1' }} # 0 is falsy in an expression, so the depth has to be a string
       - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
         with:
           distribution: temurin
@@ -354,7 +354,7 @@ jobs:
           persist-credentials: false
       - name: Lint the workflows
         run: |
-          curl -fsSL -o actionlint.tar.gz https://github.com/rhysd/actionlint/releases/download/v1.7.7/actionlint_1.7.7_linux_amd64.tar.gz
+          curl --proto '=https' --tlsv1.2 -fsSL -o actionlint.tar.gz https://github.com/rhysd/actionlint/releases/download/v1.7.7/actionlint_1.7.7_linux_amd64.tar.gz
           echo "023070a287cd8cccd71515fedc843f1985bf96c436b7effaecce67290e7e0757  actionlint.tar.gz" | sha256sum -c
           tar -xzf actionlint.tar.gz actionlint
           ./actionlint -color
