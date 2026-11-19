@@ -28,8 +28,11 @@ System_Boundary("NitidaApplication_boundary", "NitidaApplication", $tags="") {
 
 }
 
-Rel(NitidaApplication.NitidaApplication.Workshops, NitidaApplication.NitidaApplication.Identity, "uses", $techn="", $tags="", $link="")
-Rel(NitidaApplication.NitidaApplication.Workshops, NitidaApplication.NitidaApplication.Shared, "uses", $techn="", $tags="", $link="")
+Rel(NitidaApplication.NitidaApplication.Intake, NitidaApplication.NitidaApplication.Motorcycles, "uses", $techn="", $tags="", $link="")
+Rel(NitidaApplication.NitidaApplication.Intake, NitidaApplication.NitidaApplication.Shared, "uses", $techn="", $tags="", $link="")
+Rel(NitidaApplication.NitidaApplication.Intake, NitidaApplication.NitidaApplication.Workshops, "uses", $techn="", $tags="", $link="")
+Rel(NitidaApplication.NitidaApplication.Intake, NitidaApplication.NitidaApplication.Files, "uses", $techn="", $tags="", $link="")
+Rel(NitidaApplication.NitidaApplication.Identity, NitidaApplication.NitidaApplication.Shared, "uses", $techn="", $tags="", $link="")
 Rel(NitidaApplication.NitidaApplication.History, NitidaApplication.NitidaApplication.Motorcycles, "listens to", $techn="", $tags="", $link="")
 Rel(NitidaApplication.NitidaApplication.History, NitidaApplication.NitidaApplication.Shared, "listens to", $techn="", $tags="", $link="")
 Rel(NitidaApplication.NitidaApplication.History, NitidaApplication.NitidaApplication.Identity, "depends on", $techn="", $tags="", $link="")
@@ -38,14 +41,11 @@ Rel(NitidaApplication.NitidaApplication.History, NitidaApplication.NitidaApplica
 Rel(NitidaApplication.NitidaApplication.History, NitidaApplication.NitidaApplication.Motorcycles, "uses", $techn="", $tags="", $link="")
 Rel(NitidaApplication.NitidaApplication.History, NitidaApplication.NitidaApplication.Shared, "uses", $techn="", $tags="", $link="")
 Rel(NitidaApplication.NitidaApplication.History, NitidaApplication.NitidaApplication.Files, "uses", $techn="", $tags="", $link="")
-Rel(NitidaApplication.NitidaApplication.Identity, NitidaApplication.NitidaApplication.Shared, "uses", $techn="", $tags="", $link="")
-Rel(NitidaApplication.NitidaApplication.Files, NitidaApplication.NitidaApplication.Shared, "depends on", $techn="", $tags="", $link="")
 Rel(NitidaApplication.NitidaApplication.Motorcycles, NitidaApplication.NitidaApplication.Identity, "depends on", $techn="", $tags="", $link="")
 Rel(NitidaApplication.NitidaApplication.Motorcycles, NitidaApplication.NitidaApplication.Shared, "uses", $techn="", $tags="", $link="")
-Rel(NitidaApplication.NitidaApplication.Intake, NitidaApplication.NitidaApplication.Motorcycles, "uses", $techn="", $tags="", $link="")
-Rel(NitidaApplication.NitidaApplication.Intake, NitidaApplication.NitidaApplication.Shared, "uses", $techn="", $tags="", $link="")
-Rel(NitidaApplication.NitidaApplication.Intake, NitidaApplication.NitidaApplication.Workshops, "uses", $techn="", $tags="", $link="")
-Rel(NitidaApplication.NitidaApplication.Intake, NitidaApplication.NitidaApplication.Files, "uses", $techn="", $tags="", $link="")
+Rel(NitidaApplication.NitidaApplication.Files, NitidaApplication.NitidaApplication.Shared, "depends on", $techn="", $tags="", $link="")
+Rel(NitidaApplication.NitidaApplication.Workshops, NitidaApplication.NitidaApplication.Identity, "uses", $techn="", $tags="", $link="")
+Rel(NitidaApplication.NitidaApplication.Workshops, NitidaApplication.NitidaApplication.Shared, "uses", $techn="", $tags="", $link="")
 
 SHOW_LEGEND(true)
 hide stereotypes
