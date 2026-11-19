@@ -2,6 +2,7 @@ package co.nitida.identity.application;
 
 import co.nitida.identity.domain.Invitation;
 import co.nitida.identity.domain.InvitationRepository;
+import co.nitida.shared.Emails;
 import co.nitida.shared.Role;
 import co.nitida.shared.UuidV7;
 import co.nitida.shared.WorkshopContext;

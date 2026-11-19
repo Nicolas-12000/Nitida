@@ -3,6 +3,7 @@ package co.nitida.identity.application;
 import co.nitida.identity.domain.AppUser;
 import co.nitida.identity.domain.AppUserRepository;
 import co.nitida.identity.domain.PasswordPolicy;
+import co.nitida.shared.Emails;
 import co.nitida.shared.ApiException;
 import co.nitida.shared.Texts;
 import co.nitida.shared.UuidV7;

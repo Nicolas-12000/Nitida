@@ -1,0 +1,27 @@
+package co.nitida.motorcycles;
+
+import java.util.Optional;
+import java.util.UUID;
+
+/** Public API of the motorcycles module. */
+public interface MotorcyclesApi {
+    record MotorcycleInfo(UUID id, String vin, String plate, boolean legacyPlateFormat, String brand, String line,
+                          Integer modelYear, Integer displacementCc) {}
+
+    /** Declared data, not validated against external sources in the MVP (RN-16). */
+    record MotorcycleDetails(String brand, String line, Integer modelYear, Integer displacementCc) {}
+
+    record Registration(MotorcycleInfo motorcycle, boolean created) {}
+
+    /**
+     * RN-13..15: finds the motorcycle by VIN, then by plate; associates a late VIN with a plate-only motorcycle;
+     * creates it (publishing MotorcycleRegistered) only when it does not exist yet.
+     */
+    Registration findOrRegister(UUID workshopId, String plate, String vin, MotorcycleDetails details, int declaredMileage);
+
+    Optional<MotorcycleInfo> find(UUID motorcycleId);
+
+    Optional<MotorcycleInfo> lookup(String plate, String vin);
+
+    boolean customerBelongsTo(UUID customerId, UUID workshopId);
+}
